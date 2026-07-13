@@ -1,7 +1,5 @@
 name: mjepa
 channels:
-  - pytorch
-  - nvidia
   - conda-forge
   - defaults
 dependencies:
@@ -16,12 +14,16 @@ dependencies:
   - lifelines>=0.28
   - tensorboard>=2.16
   - pytest>=8.0
-  - pytorch>=2.1
-  - pytorch-cuda=12.1
   - pip:
-      - transformers>=4.40
-      - accelerate>=0.28
-      - peft>=0.10
+      # PyTorch 2.6+ is required by the Gemma 3 masking implementation used
+      # by current Transformers. Official PyTorch 2.6 binaries are pip wheels.
+      - --extra-index-url https://download.pytorch.org/whl/cu118
+      - torch==2.6.0+cu118
+      - torchvision==0.21.0+cu118
+      - torchaudio==2.6.0+cu118
+      - transformers>=4.50,<5
+      - accelerate>=0.28,<2
+      - peft>=0.10,<1
       - safetensors>=0.4
       - sentencepiece>=0.1.99
       - protobuf>=4.25
