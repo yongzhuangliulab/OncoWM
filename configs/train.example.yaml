@@ -19,7 +19,7 @@ data:
 
 models:
   # Local MedGemma model directory; do not commit model weights.
-  text_encoder_name: /path/to/medgemma-1.5-4b-it
+  text_encoder_name: pretrained_models/medgemma-1.5-4b-it
   path_dim: 768
   # Must equal the mutation vector length for this cancer type.
   geno_raw_dim: 9920

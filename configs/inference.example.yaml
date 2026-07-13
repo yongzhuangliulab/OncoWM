@@ -1,6 +1,6 @@
 task_mode: prognosis
 run_name: KIRP_OS_fold_0
-model_path: outputs/train/KIRP_OS/fold_0/prognosis-best.pth.tar
+model_path: pretrained_models/mjepa/KIRP_OS/fold_0/prognosis-best.pth.tar
 output_path: outputs/inference
 device: cuda:0
 use_bfloat16: true
@@ -18,7 +18,7 @@ data:
   tran_pt_path: data/processed/transcriptome.pt
 
 models:
-  text_encoder_name: /path/to/medgemma-1.5-4b-it
+  text_encoder_name: pretrained_models/medgemma-1.5-4b-it
   path_dim: 768
   geno_raw_dim: 9920
   geno_dim: 512

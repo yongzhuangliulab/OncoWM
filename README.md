@@ -31,6 +31,8 @@ mjepa/
 ├── data/
 │   ├── raw/                 # 使用者自己的原始数据；Git 忽略
 │   └── processed/           # 提交给模型的标准结果；Git 忽略
+├── pretrained_models/       # 下载的 MedGemma/TITAN/CONCH/BulkFormer/M-JEPA 权重
+├── outputs/                 # 本仓库训练和推理生成的结果；Git 忽略
 ├── docs/
 │   ├── data_contract.md     # 首要文档：模型输入契约
 │   ├── pt_formats.md        # PT 内部对象说明
@@ -38,7 +40,11 @@ mjepa/
 └── tests/                   # 数据转换回归测试
 ```
 
-## 模型需要的结果数据
+## 下载后怎样放置文件
+
+使用者下载仓库后只需准备两类本地文件：处理好的患者级数据和模型权重。二者都不会上传到 GitHub。
+
+### 1. 处理好的数据
 
 无论原始数据来自哪里，处理后请放入 `data/processed/`，并保证所有模态使用相同的 `sample_id`：
 
@@ -51,6 +57,44 @@ mjepa/
 | `transcriptome.pt` | 患者级转录组 embedding | `dict[sample_id, Tensor]`；维度必须与配置一致 |
 
 前三类已有转换示例；病理和转录组目前要求使用者提供预先提取的结果。完整约束见 [数据接口规范](docs/data_contract.md)。模型训练或推理只依赖处理结果，不依赖某个队列的原始表头。
+
+普通单队列可以直接使用：
+
+```text
+data/processed/
+├── survival.csv
+├── clinical.pt
+├── mutation.pt
+├── pathology.pt
+└── transcriptome.pt
+```
+
+批量 TCGA 配置使用 `data/processed/tcga/` 下按模态分目录的结构，详见 [TCGA 配置说明](configs/tcga/README.md)。
+
+### 2. 下载的模型权重
+
+所有下载权重统一放入 `pretrained_models/`：
+
+```text
+pretrained_models/
+├── medgemma-1.5-4b-it/
+├── conch-v1.5/
+├── titan/
+├── bulkformer/
+└── mjepa/<CANCER>_<ENDPOINT>/fold_0/prognosis-best.pth.tar
+```
+
+用途：
+
+| 目录 | 用途 |
+| --- | --- |
+| `medgemma-1.5-4b-it/` | 生成临床摘要，并作为训练/推理的临床文本编码器 |
+| `conch-v1.5/` | 从 SVS patch 提取特征 |
+| `titan/` | 将 patch 特征聚合为病理 embedding |
+| `bulkformer/` | 从表达矩阵提取转录组 embedding |
+| `mjepa/` | 放置别人下载的训练好 M-JEPA checkpoint，用于推理 |
+
+训练代码不会直接读取 SVS。病理切片必须先经过 `SVS → CONCH patch 特征 → TITAN embedding → pathology.pt`，再把最终 `pathology.pt` 放入 `data/processed/`。详细说明见 [pretrained_models/README.md](pretrained_models/README.md)。
 
 ## 安装
 
@@ -67,7 +111,7 @@ conda activate mjepa
 pip install -r requirements.txt
 ```
 
-临床处理还需要用户自行准备可访问的 MedGemma 1.5 4B IT 模型，并遵守其许可证和访问要求。
+临床处理还需要用户把 MedGemma 1.5 4B IT 放到 `pretrained_models/medgemma-1.5-4b-it/`，并遵守其许可证和访问要求。
 
 ## 训练、推理和评估
 
@@ -113,7 +157,7 @@ python data_processing/process_survival_data.py \
 python data_processing/process_clinical_data_qu.py \
   --input data/raw/clinical.csv \
   --output data/processed/clinical.pt \
-  --model-path /path/to/medgemma-1.5-4b-it
+  --model-path pretrained_models/medgemma-1.5-4b-it
 
 python data_processing/process_mutation_qu.py \
   --input data/raw/molecular.tsv \
@@ -145,7 +189,7 @@ python data_processing/inspect_pt.py data/processed/mutation.pt --max-items 3
 
 ## 当前范围
 
-本次整理保留了当前 v5.3 核心调用链，并去除了历史版本、服务器绝对路径、批量癌种命令、日志和患者级大文件。训练代码目前要求病理、临床、突变和转录组四模态齐全；推理允许缺失模态。模型权重、SVS/转录组特征提取和正式发布配置不包含在仓库中。
+本次整理保留了当前 v5.3 核心调用链，并去除了历史版本、服务器绝对路径、批量癌种命令、日志和患者级大文件。训练代码目前要求病理、临床、突变和转录组四模态齐全；推理允许缺失模态。模型权重不包含在 GitHub 中；SVS/转录组特征提取流程仍需使用对应外部项目，完成后只把标准结果放进 `data/processed/`。
 
 ## License
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python}"
-MODEL_PATH="${MODEL_PATH:?Set MODEL_PATH to the local MedGemma model directory}"
+MODEL_PATH="${MODEL_PATH:-pretrained_models/medgemma-1.5-4b-it}"
 INPUT_CSV="${INPUT_CSV:-data/raw/clinical.csv}"
 OUTPUT_PT="${OUTPUT_PT:-data/processed/clinical.pt}"
 

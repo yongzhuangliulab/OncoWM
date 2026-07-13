@@ -6,6 +6,7 @@ import pandas as pd
 
 
 DEFAULT_OUTPUT_PT = "data/processed/clinical.pt"
+DEFAULT_MODEL_PATH = "pretrained_models/medgemma-1.5-4b-it"
 DEFAULT_SAMPLE_COL = "样本编号"
 DEFAULT_GROUP_COL = "分组"
 DEFAULT_SEX_COL = "性别"
@@ -181,9 +182,7 @@ def process_clinical_to_pt(args) -> None:
     if not os.path.exists(args.input):
         raise FileNotFoundError(f"Input file not found: {args.input}")
 
-    model_path = args.model_path or os.environ.get("MODEL_PATH")
-    if not model_path:
-        raise ValueError("Provide --model-path or set the MODEL_PATH environment variable")
+    model_path = args.model_path or os.environ.get("MODEL_PATH") or DEFAULT_MODEL_PATH
     df = read_table(args.input, args.sep)
     df = prepare_clinical_dataframe(df, sample_col=args.sample_col, include_only=args.include_only)
     sample_ids = df[args.sample_col].tolist()
@@ -224,7 +223,11 @@ def parse_args():
     )
     parser.add_argument("--input", required=True, help="Path to the cohort clinical CSV/TSV")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_PT, help=f"Output .pt path. Default: {DEFAULT_OUTPUT_PT}")
-    parser.add_argument("--model-path", default=None, help="Local MedGemma model path. May also be set with MODEL_PATH")
+    parser.add_argument(
+        "--model-path",
+        default=None,
+        help=f"Local MedGemma model path. Default: MODEL_PATH or {DEFAULT_MODEL_PATH}",
+    )
     parser.add_argument("--sample-col", default=DEFAULT_SAMPLE_COL, help=f"Sample ID column. Default: {DEFAULT_SAMPLE_COL}")
     parser.add_argument("--group-col", default=DEFAULT_GROUP_COL, help=f"Cancer group column. Default: {DEFAULT_GROUP_COL}")
     parser.add_argument("--sex-col", default=DEFAULT_SEX_COL, help=f"Sex column. Default: {DEFAULT_SEX_COL}")

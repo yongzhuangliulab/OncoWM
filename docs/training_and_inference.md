@@ -96,6 +96,8 @@ bash scripts/run_inference.sh configs/inference_BRCA_OS_fold_0.yaml
 
 与训练不同，推理配置允许把缺失模态写为 YAML `null`/`~`。启用的模态之间仍会取样本 ID 交集。若配置了一个非空路径但文件不存在，程序会报错，不会静默当作缺失模态。checkpoint 来自哪种维度和模型结构，推理配置就必须保持完全相同。
 
+别人下载的 M-JEPA checkpoint 建议放在 `pretrained_models/mjepa/<CANCER>_<ENDPOINT>/fold_<N>/`；本地训练生成的 checkpoint 位于 `outputs/train/`。推理 YAML 的 `model_path` 可以指向两者之一。
+
 prognosis 模式输出：
 
 ```text

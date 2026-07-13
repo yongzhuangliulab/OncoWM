@@ -11,7 +11,10 @@ def test_example_configs_contain_required_sections():
     inference = yaml.safe_load((ROOT / "configs/inference.example.yaml").read_text(encoding="utf-8"))
 
     assert {"data", "models", "MoE", "optimization", "meta"}.issubset(train)
+    assert train["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
     assert {"task_mode", "model_path", "output_path", "data", "models", "MoE"}.issubset(inference)
+    assert inference["model_path"].startswith("pretrained_models/mjepa/")
+    assert inference["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
 
 
 def test_tcga_configs_are_complete_and_portable():
