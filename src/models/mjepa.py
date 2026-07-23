@@ -10,9 +10,6 @@ from peft import get_peft_model, LoraConfig
 
 logger = logging.getLogger(__name__)
 
-# =========================================================================
-# 🧬 损失函数群
-# =========================================================================
 def deepsurv_cox_loss(risk: torch.Tensor, time: torch.Tensor, event: torch.Tensor, eps: float = 1e-7) -> torch.Tensor:
     risk = risk.float()
     time = time.float()
@@ -101,9 +98,6 @@ class GenoSNNEncoder(nn.Module):
         x = self.raw_dropout(x) 
         return self.encoder(x)
 
-# =========================================================================
-# 🚀 预后头 (v8.0 正交解耦与动态调制网络 - Orthogonal FiLM Head)
-# =========================================================================
 class DeepSurvHead(nn.Module):
     def __init__(self, in_features: int, hidden_dims: list = [128, 32], dropout_rate: float = 0.35, temperature: float = 2.0):
         super().__init__()
@@ -114,19 +108,16 @@ class DeepSurvHead(nn.Module):
         
         self.q_proj = nn.Linear(in_features, in_features, bias=False)
         self.kv_proj = nn.Linear(in_features, in_features * 2, bias=False)
-        self.out_proj = nn.Linear(in_features, in_features, bias=False)
         self.attn_drop = nn.Dropout(p=dropout_rate)
         
         self.context_norm = nn.LayerNorm(in_features)
         
-        # 🚀 1. FiLM 调制发生器 (生成动态 Gamma 和 Beta 缩放因子)
         self.film_gen = nn.Sequential(
             nn.Linear(in_features, in_features // 2),
             nn.SELU(),
             nn.Linear(in_features // 2, in_features * 2)
         )
         
-        # 🚀 2. 核心预测器 (维度保持在 in_features，避免维度爆炸导致 Fold 2 过拟合)
         self.main_predictor = nn.Sequential(
             nn.Linear(in_features, hidden_dims[0]),
             nn.SELU(),
@@ -144,10 +135,7 @@ class DeepSurvHead(nn.Module):
         
         self.router_v = nn.Linear(in_features, 1)
         
-        # 🚀 3. 可学习的 VIP 振幅边界 (解放 Fold 0)
         self.vip_scale = nn.Parameter(torch.tensor(2.0))
-        
-        # 分支随机失活概率 (极大的正则化收益)
         self.branch_drop_prob = 0.25
 
         self._initialize_weights()
@@ -167,11 +155,11 @@ class DeepSurvHead(nn.Module):
         nn.init.zeros_(self.vip_g.weight)
         nn.init.zeros_(self.vip_tr.weight)
         
-        # FiLM 输出初始化为 0，起步时调制效果为恒等映射，保证绝对安全
+        # Start FiLM as an identity modulation.
         nn.init.zeros_(self.film_gen[-1].weight)
         nn.init.zeros_(self.film_gen[-1].bias)
         
-        # VIP 阀门起步处于近乎关闭状态
+        # Start the VIP residual gate nearly closed.
         nn.init.zeros_(self.router_v.weight)
         nn.init.constant_(self.router_v.bias, -2.0) 
 
@@ -179,7 +167,6 @@ class DeepSurvHead(nn.Module):
         B, D = joint_emb.shape
         device = joint_emb.device
         
-        # --- 1. 独立 Sigmoid 注意力提取 Context ---
         mod_feats = torch.stack([s_t, s_p, s_g, s_tr], dim=1)
         q = self.q_proj(joint_emb).view(B, 1, self.num_heads, self.head_dim).transpose(1, 2)
         kv = self.kv_proj(mod_feats).view(B, 4, 2, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
@@ -198,16 +185,12 @@ class DeepSurvHead(nn.Module):
         context = torch.matmul(attn_probs, v).transpose(1, 2).contiguous().view(B, D)
         context = self.context_norm(context)
         
-        # 🚀 计算正交解耦损失 (Orthogonal Penalty)
         cos_sim = F.cosine_similarity(joint_emb, context, dim=-1)
         ortho_loss = torch.abs(cos_sim).mean()
         
-        # --- 2. 🚀 FiLM 特征级线性调制 (激活 Fold 4) ---
         film_params = self.film_gen(joint_emb)
         gamma = film_params[:, :D]
         beta = film_params[:, D:]
-        
-        # 用联合特征动态调制局部注意力特征
         modulated_context = context * (1.0 + gamma) + beta
         
         if self.training and self.branch_drop_prob > 0:
@@ -216,9 +199,8 @@ class DeepSurvHead(nn.Module):
         else:
             fused_features = joint_emb + modulated_context
             
-        main_risk = self.main_predictor(fused_features) # [B, 1]
+        main_risk = self.main_predictor(fused_features)
         
-        # --- 3. 🚀 动态自适应 VIP 旁路 (解放 Fold 0) ---
         valid_mask_vip = (~missing_mask).float() 
         r_t = self.vip_t(u_t) * valid_mask_vip[:, 0:1]
         r_p = self.vip_p(u_p) * valid_mask_vip[:, 1:2]
@@ -227,7 +209,6 @@ class DeepSurvHead(nn.Module):
         
         raw_vip_risk = r_t + r_p + r_g + r_tr
         
-        # 模型自主决定 VIP 边界，限制在 0.5 到 5.0 之间
         scale_limit = torch.clamp(self.vip_scale, min=0.5, max=5.0)
         bounded_vip_risk = torch.tanh(raw_vip_risk) * scale_limit
         
@@ -241,14 +222,12 @@ class DeepSurvHead(nn.Module):
             
         final_risk = main_risk + vip_in
         
-        # 返回 Ortho Loss 供主循环合并
         return final_risk, ortho_loss
 
 class OncoJEPA(nn.Module):
     def __init__(self, text_encoder_name: str, path_dim: int, geno_raw_dim: int, geno_dim: int, tran_dim: int, 
-                 num_experts: int, hidden_size: int, k_expert: int, dropout_rate: float):
+                 hidden_size: int, dropout_rate: float):
         super().__init__()
-        self.hidden_size = hidden_size
 
         self.text_model = self._load_text_model(text_encoder_name)
         text_dim = self.text_model.config.text_config.hidden_size if hasattr(self.text_model.config, 'text_config') else self.text_model.config.hidden_size
@@ -440,7 +419,7 @@ class OncoJEPA(nn.Module):
                 target_joint_embedding = self.norm_joint(t_fused[:, 0, :])
 
                 if drop_prob > 0:
-                    s_text, s_path, s_geno, s_tran, drop_mask = self._modality_dropout(B, u_text, u_path, u_geno, u_tran, drop_prob)
+                    s_text, s_path, s_geno, s_tran, _ = self._modality_dropout(B, u_text, u_path, u_geno, u_tran, drop_prob)
                 else:
                     s_text, s_path, s_geno, s_tran = u_text, u_path, u_geno, u_tran
 
@@ -501,14 +480,12 @@ class OncoJEPA(nn.Module):
             real_missing = torch.stack([text_missing, path_missing, geno_missing, tran_missing], dim=1)
             effective_mask = real_missing | drop_mask 
             
-            # 🚀 接收正交解耦 Loss
             final_risk, ortho_loss = self.head_joint(joint_embedding, s_t, s_p, s_g, s_tr, u_t, u_p, u_g, u_tr, effective_mask)
             final_risk = final_risk.squeeze(-1)
 
             if surv_time is not None and surv_event is not None:
                 loss_cox = deepsurv_cox_loss(final_risk, surv_time, surv_event)
                 loss_rank = pairwise_ranking_loss(final_risk, surv_time, surv_event, margin=0.5)
-                # 🚀 引入 0.1 权重的正交约束，强制净化注意力特征
                 total_loss = loss_cox + 0.05 * loss_rank + 0.1 * ortho_loss
                 return total_loss, final_risk
                 
@@ -520,5 +497,5 @@ class OncoJEPA(nn.Module):
         else:
             raise ValueError(f"不支持的 Task 模式: {task}")
 
-def init_m3jepa(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, num_experts, hidden_size, k_expert, dropout_rate):
-    return OncoJEPA(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, num_experts, hidden_size, k_expert, dropout_rate)
+def init_m3jepa(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate):
+    return OncoJEPA(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate)

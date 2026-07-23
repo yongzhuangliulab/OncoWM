@@ -9,7 +9,6 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
-# Import the same model definition used by training.
 from src.models.mjepa import init_m3jepa
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,15 +24,9 @@ def set_deterministic_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    # 强制 cuDNN 使用确定性算法
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    # 对于一些非确定的 PyTorch 算子报错（可选，极为严格）
-    # torch.use_deterministic_algorithms(True) 
 
-# ==========================================
-# 1. 动态模态 Dataset (兼容缺失)
-# ==========================================
 class InferenceDataset(Dataset):
     def __init__(self, csv_path, path_pt=None, text_pt=None, geno_pt=None, tran_pt=None):
         self.full_df = pd.read_csv(csv_path)
@@ -44,9 +37,6 @@ class InferenceDataset(Dataset):
         self.geno_dict = self._load_optional_pt(geno_pt, 'mutation')
         self.tran_dict = self._load_optional_pt(tran_pt, 'transcriptome')
         
-        # ==========================================
-        # 新增逻辑：计算所有被启用（非空）模态的患者 ID 交集
-        # ==========================================
         valid_id_sets = []
         if self.path_dict: 
             valid_id_sets.append(set(self.path_dict.keys()))
@@ -57,14 +47,9 @@ class InferenceDataset(Dataset):
         if self.tran_dict: 
             valid_id_sets.append(set(self.tran_dict.keys()))
             
-        # 如果至少存在一个有效模态，执行交集过滤
         if valid_id_sets:
             common_ids = set.intersection(*valid_id_sets)
-            
-            # 兼容不同的 ID 列名
             id_col = 'sample_id' if 'sample_id' in self.full_df.columns else ('PATIENT_ID' if 'PATIENT_ID' in self.full_df.columns else self.full_df.columns[0])
-            
-            # 过滤全队列 DataFrame
             self.full_df = self.full_df[self.full_df[id_col].astype(str).isin(common_ids)]
             self.full_df = self.full_df.reset_index(drop=True)
         else:
@@ -109,15 +94,11 @@ class InferenceDataset(Dataset):
 
 def collate_fn(batch):
     batch_dict = {'patient_id': [item['patient_id'] for item in batch]}
-    #def stack_if_present(key):
-    #    items = [item[key] for item in batch if key in item]
-    #    return torch.stack(items) if len(items) == len(batch) else None
     def stack_if_present(key):
         items = []
         for item in batch:
             if key in item:
                 val = item[key]
-                # 核心修复：如果新加载的额外数据是 [1, dim]，强制压缩为 [dim]
                 if isinstance(val, torch.Tensor) and val.dim() > 1 and val.shape[0] == 1:
                     val = val.squeeze(0)
                 items.append(val)
@@ -137,9 +118,6 @@ def collate_fn(batch):
     return batch_dict
 
 
-# ==========================================
-# 2. 推理主函数
-# ==========================================
 def main(args):
     with open(args.fname, 'r') as f:
         params = yaml.safe_load(f)
@@ -148,9 +126,6 @@ def main(args):
     task_mode = params.get('task_mode', 'align')  
     out_dir = os.path.join(params.get('output_path', './'), params.get('run_name', 'inference'))
     
-    # ==========================================
-    # 新增逻辑：在加载数据和模型前，检查预计生成的文件是否已存在
-    # ==========================================
     is_completed = False
     if task_mode == 'align':
         is_completed = os.path.exists(os.path.join(out_dir, 'joint_embeddings.npz'))
@@ -172,7 +147,6 @@ def main(args):
 
     logger.info(f"🚀 初始化推理模式: {task_mode.upper()} | 设备: {device}")
 
-    # 数据加载
     d_params = params['data']
     dataset = InferenceDataset(
         csv_path=d_params['csv_path'],
@@ -191,24 +165,18 @@ def main(args):
         pin_memory=d_params.get('pin_mem', True)
     )
 
-    # 初始化模型
     models_cfg = params['models']
-    moe_cfg = params.get('MoE', {})  
 
-    # Model dimensions must match the training checkpoint.
     mm_jepa = init_m3jepa(
         text_encoder_name=models_cfg['text_encoder_name'],
         path_dim=models_cfg.get('path_dim', 768),
         geno_raw_dim=models_cfg.get('geno_raw_dim', 40543),
         geno_dim=models_cfg.get('geno_dim', 512),
-        tran_dim=models_cfg.get('tran_dim', 768),  # 注意: 如果 YAML 里此处为 643，请确保与模型匹配
-        num_experts=moe_cfg.get('num_experts', 8),    
-        hidden_size=moe_cfg.get('hidden_size', 1024), 
-        k_expert=moe_cfg.get('k', 2),                 
-        dropout_rate=0.0  # 推理时强制关闭 dropout
+        tran_dim=models_cfg.get('tran_dim', 768),
+        hidden_size=models_cfg.get('hidden_size', 1024),
+        dropout_rate=0.0
     )
     
-    # 权重加载
     ckpt_path = params.get('model_path')
     if not (ckpt_path and os.path.exists(ckpt_path)):
         raise FileNotFoundError(f"找不到 YAML 中指定的 model_path: {ckpt_path}")
@@ -218,6 +186,7 @@ def main(args):
 
     raw_state_dict = checkpoint.get('mm_jepa', checkpoint.get('state_dict', checkpoint))
     state_dict = {k.replace('module.', ''): v for k, v in raw_state_dict.items()}
+    state_dict.pop('head_joint.out_proj.weight', None)
 
     incompatible = mm_jepa.load_state_dict(state_dict, strict=False)
     if incompatible.missing_keys:
@@ -230,17 +199,12 @@ def main(args):
     mm_jepa = mm_jepa.to(device)
     mm_jepa.eval()
 
-    # ==========================================
-    # Register a hook to capture the normalized joint embedding.
-    # ==========================================
     results_dict = {'sample_id': [], 'risk_scores': [], 'joint_embeddings': []}
     
-    def hook_fn(module, input, output):
-        # norm_joint returns the normalized [B, hidden_size] representation.
+    def hook_fn(_module, _inputs, output):
         joint_emb = output.cpu().float().numpy()
         results_dict['joint_embeddings'].append(joint_emb)
 
-    # 精准挂载到 norm_joint，完美拦截最终输出
     hook_handle = mm_jepa.norm_joint.register_forward_hook(hook_fn)
 
     logger.info(f"⚡ 开始执行严格推理提取 | 模式: {task_mode.upper()}")
@@ -257,26 +221,18 @@ def main(args):
         with torch.inference_mode():
             with torch.amp.autocast(device.type, dtype=torch.bfloat16, enabled=use_bfloat16):
                 
-                # 智能路由：提取 Embedding 时避开 Loss 计算
                 forward_task = 'cluster' if task_mode == 'align' else 'prognosis'
-                
-                # Disable stochastic modality dropout during inference.
                 out = mm_jepa(
                     text_input_ids=clin_ids, text_attention_mask=clin_mask, text_token_type_ids=clin_type_ids,
                     path_features=path_feat, geno_raw=geno_raw, tran_features=tran_feat,
                     task=forward_task, drop_prob=0.0
                 )
                 if task_mode == 'prognosis':
-                    # 在 Prognosis 任务且没有 Surv Label 传入时，返回的是锐化门控加权后的 final_risk
                     risk_scores = out
                     results_dict['risk_scores'].extend(risk_scores.cpu().float().numpy().tolist())
 
     hook_handle.remove()
 
-    # ==========================================
-    # 3. 按任务模式保存对应结果
-    # ==========================================
-    out_dir = os.path.join(params.get('output_path', './'), params.get('run_name', 'inference'))
     os.makedirs(out_dir, exist_ok=True)
     all_ids = results_dict['sample_id']
     

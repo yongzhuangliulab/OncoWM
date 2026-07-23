@@ -33,7 +33,6 @@ class CSVLogger(object):
     def __init__(self, fname, *argv):
         self.fname = fname
         self.types = []
-        # -- print headers
         with open(self.fname, '+a') as f:
             for i, v in enumerate(argv, 1):
                 self.types.append(v[0])

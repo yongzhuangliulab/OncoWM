@@ -24,8 +24,4 @@ models:
   geno_raw_dim: 19766
   geno_dim: 512
   tran_dim: 643
-
-MoE:
-  num_experts: 8
-  k: 2
   hidden_size: 1024

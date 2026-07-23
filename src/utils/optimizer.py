@@ -29,12 +29,10 @@ class EarlyStopping:
         self.delta = delta
         self.maximize = maximize
 
-    def __call__(self, val_metric, model=None):
+    def __call__(self, val_metric):
         """
         Args:
             val_metric (float): The current epoch's validation metric.
-            model (nn.Module, optional): Kept for API compatibility with train_modify_v2.py. 
-                                         Checkpoint saving is assumed to be handled in the main loop.
         """
         # Align logic so that a higher 'score' always means a better model
         score = val_metric if self.maximize else -val_metric
