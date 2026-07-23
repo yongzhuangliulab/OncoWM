@@ -51,7 +51,6 @@ optimization:
 
 logging:
   write_tag: metrics
-  folder: outputs/train
 
 tb:
   log_dir: outputs/tensorboard

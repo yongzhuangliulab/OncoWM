@@ -1,5 +1,7 @@
 # PyTorch `.pt` 结果格式
 
+[English](pt_formats_EN.md)
+
 M-JEPA 当前使用的 `.pt` 是通过 `torch.save` 保存的患者级 Python 字典，而不是一个无样本标识的单独 Tensor。只应使用 `torch.load` 加载可信来源的文件。
 
 ## 临床结果

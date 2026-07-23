@@ -1,5 +1,7 @@
 # 训练、推理与生存评估
 
+[English](training_and_inference_EN.md)
+
 安装、数据和权重放置等完整步骤见 [使用指南](../USAGE.md)。
 
 本仓库仅保留当前实际使用的 v5.3 调用链，公开文件名不再携带实验版本后缀：
@@ -82,18 +84,18 @@ prognosis 默认强制要求每折已存在 `align-best.pth.tar`，避免把“�
 
 ## 2. 推理
 
-复制并修改 `configs/inference.example.yaml`，尤其是 checkpoint、输出目录、MedGemma 路径和各模态维度：
+复制并修改 `configs/inference.example.yaml`，尤其是 full-cohort checkpoint、输出目录、MedGemma 路径和各模态维度：
 
 ```bash
-cp configs/inference.example.yaml configs/inference_BRCA_OS_fold_0.yaml
-# 编辑 configs/inference_BRCA_OS_fold_0.yaml 后运行
-python -m src.inference --fname configs/inference_BRCA_OS_fold_0.yaml
+cp configs/inference.example.yaml configs/inference_BRCA_OS_full_cohort.yaml
+# 编辑 configs/inference_BRCA_OS_full_cohort.yaml 后运行
+python -m src.inference --fname configs/inference_BRCA_OS_full_cohort.yaml
 ```
 
 或：
 
 ```bash
-bash scripts/run_inference.sh configs/inference_BRCA_OS_fold_0.yaml
+bash scripts/run_inference.sh configs/inference_BRCA_OS_full_cohort.yaml
 ```
 
 与训练不同，推理配置允许把缺失模态写为 YAML `null`/`~`。启用的模态之间仍会取样本 ID 交集。若配置了一个非空路径但文件不存在，程序会报错，不会静默当作缺失模态。checkpoint 来自哪种维度和模型结构，推理配置就必须保持完全相同。
@@ -114,8 +116,8 @@ outputs/inference/<run_name>/
 
 ```bash
 python -m src.evaluate \
-  --scores outputs/inference/BRCA_OS_fold_0/prognosis_risk_scores.csv \
-  --yaml configs/inference_BRCA_OS_fold_0.yaml
+  --scores outputs/inference/BRCA_OS_full_cohort/prognosis_risk_scores.csv \
+  --yaml configs/inference_BRCA_OS_full_cohort.yaml
 ```
 
 脚本按 `sample_id` 将风险分数与 YAML 中 `data.csv_path` 指向的生存标签合并，生成同目录下的 `evaluation_metrics.csv`。
