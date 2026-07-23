@@ -1,5 +1,7 @@
 # M-JEPA 使用指南
 
+[English](USAGE_EN.md)
+
 本文说明如何安装 M-JEPA、准备模型输入、训练模型，以及使用已有 checkpoint 完成推理和生存评估。
 
 ## 1. 安装
@@ -7,8 +9,8 @@
 克隆仓库：
 
 ```bash
-git clone https://github.com/qazlcy/mjepa.git
-cd mjepa
+git clone https://github.com/yongzhuangliulab/Multimoda_JEPA.git
+cd Multimoda_JEPA
 ```
 
 推荐使用 Conda 创建环境：
@@ -103,8 +105,8 @@ pretrained_models/
 ├── bulkformer/
 └── mjepa/
     └── <CANCER>_<ENDPOINT>/
-        └── fold_0/
-            └── prognosis-best.pth.tar
+        └── full_cohort/
+            └── prognosis_full_final.pth.tar
 ```
 
 用途：
@@ -126,7 +128,7 @@ pretrained_models/
 configs/
 ├── train.example.yaml
 ├── inference.example.yaml
-├── inference.ALL_DFI_fold_0.yaml
+├── inference.ALL_DFI_full_cohort.yaml
 └── tcga/                       # 84 份 TCGA 训练配置
 ```
 
@@ -134,7 +136,7 @@ configs/
 
 ```bash
 cp configs/train.example.yaml configs/train_my_cohort.yaml
-cp configs/inference.example.yaml configs/inference_my_cohort_fold_0.yaml
+cp configs/inference.example.yaml configs/inference_my_cohort_full_cohort.yaml
 ```
 
 重点检查：
@@ -193,14 +195,14 @@ outputs/train/BRCA/BRCA_OS/
 
 ```bash
 python -m src.inference \
-  --fname configs/inference_my_cohort_fold_0.yaml
+  --fname configs/inference_my_cohort_full_cohort.yaml
 ```
 
 或者使用仓库提供的 TCGA ALL_DFI 配置示例：
 
 ```bash
 python -m src.inference \
-  --fname configs/inference.ALL_DFI_fold_0.yaml
+  --fname configs/inference.ALL_DFI_full_cohort.yaml
 ```
 
 prognosis 推理生成：
@@ -220,7 +222,7 @@ M-JEPA checkpoint 不重复保存冻结的 MedGemma 主干，因此加载时可�
 ```bash
 python -m src.evaluate \
   --scores outputs/inference/<experiment>/<run_name>/prognosis_risk_scores.csv \
-  --yaml configs/inference_my_cohort_fold_0.yaml
+  --yaml configs/inference_my_cohort_full_cohort.yaml
 ```
 
 评估脚本会根据 `sample_id` 合并 YAML 中生存 CSV 的真实标签，并生成：

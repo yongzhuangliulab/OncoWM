@@ -1,8 +1,10 @@
 # 配置文件
 
+[English](README_EN.md)
+
 - `train.example.yaml`：五折两阶段训练模板。
 - `inference.example.yaml`：单个 checkpoint 推理模板。
-- `inference.ALL_DFI_fold_0.yaml`：ALL_DFI fold 0 四模态推理配置示例。
+- `inference.ALL_DFI_full_cohort.yaml`：ALL_DFI full-cohort 四模态推理配置示例。
 - `tcga/`：21 个癌种（含 `ALL` 汇总队列）× OS/DSS/DFI/PFI，共 84 份可运行五折训练配置。
 
 复制模板并按自己的癌种、终点和文件路径修改。配置中的维度必须与 PT Tensor 和训练 checkpoint 一致，尤其是 `geno_raw_dim`、`path_dim` 和 `tran_dim`。

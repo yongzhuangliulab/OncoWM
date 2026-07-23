@@ -1,5 +1,7 @@
 # M-JEPA
 
+[English](README_EN.md)
+
 M-JEPA 是一个多模态生存预测研究项目。本仓库以**模型实际接收的标准化结果数据**为接口；不同医院、队列或公开数据集的原始表头可以不同，使用者需要先把自己的数据转换成本文规定的结果格式。
 
 > 当前仓库包含 v5.3 模型训练、推理、C-index 评估，以及临床、生存标签和突变三类数据的示例转换脚本。病理切片（SVS）与转录组的特征提取流程暂未纳入本轮整理。
@@ -84,7 +86,7 @@ pretrained_models/
 ├── conch-v1.5/
 ├── titan/
 ├── bulkformer/
-└── mjepa/<CANCER>_<ENDPOINT>/fold_0/prognosis-best.pth.tar
+└── mjepa/<CANCER>_<ENDPOINT>/full_cohort/prognosis_full_final.pth.tar
 ```
 
 用途：
@@ -127,11 +129,11 @@ python main.py --fname configs/tcga/train_BRCA_OS.yaml --task both --run-name BR
 推理与评估：
 
 ```bash
-python -m src.inference --fname configs/inference.ALL_DFI_fold_0.yaml
+python -m src.inference --fname configs/inference.ALL_DFI_full_cohort.yaml
 
 python -m src.evaluate \
-  --scores outputs/inference/ALL/ALL_DFI/prognosis/Full_modal/fold_0/prognosis_risk_scores.csv \
-  --yaml configs/inference.ALL_DFI_fold_0.yaml
+  --scores outputs/inference/ALL/ALL_DFI/prognosis/Full_modal/full_cohort/prognosis_risk_scores.csv \
+  --yaml configs/inference.ALL_DFI_full_cohort.yaml
 ```
 
 完整使用步骤见 [使用指南](USAGE.md)，阶段关系和实现注意事项见 [训练与推理说明](docs/training_and_inference.md)。

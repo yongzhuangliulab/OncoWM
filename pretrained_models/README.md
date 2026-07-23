@@ -1,5 +1,7 @@
 # 下载模型权重放置目录
 
+[English](README_EN.md)
+
 所有从外部下载、而不是由本次训练产生的模型权重统一放在本目录。权重文件本身已被 Git 忽略，只提交本说明。
 
 推荐结构：
@@ -12,8 +14,8 @@ pretrained_models/
 ├── bulkformer/                # 转录组 embedding 提取
 └── mjepa/                     # 下载的 M-JEPA checkpoint
     └── <CANCER>_<ENDPOINT>/
-        └── fold_0/
-            └── prognosis-best.pth.tar
+        └── full_cohort/
+            └── prognosis_full_final.pth.tar
 ```
 
 第三方模型目录内部的文件名应保持其原始发布结构，不要只复制单个权重文件而丢失 `config.json`、tokenizer 或其他配套文件。

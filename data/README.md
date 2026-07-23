@@ -1,5 +1,7 @@
 # 本地数据目录
 
+[English](README_EN.md)
+
 - `raw/`：使用者自己的原始数据，格式可因队列而异。
 - `processed/`：满足 `docs/data_contract.md` 的模型输入结果。
 

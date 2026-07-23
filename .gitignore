@@ -43,6 +43,7 @@ env/
 /checkpoints/
 /pretrained_models/*
 !/pretrained_models/README.md
+!/pretrained_models/README_EN.md
 /titan_slide_embeddings/
 /titi/
 /explainability/

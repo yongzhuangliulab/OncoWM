@@ -6,6 +6,39 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_documentation_has_chinese_and_english_versions():
+    pairs = [
+        ("README.md", "README_EN.md"),
+        ("USAGE.md", "USAGE_EN.md"),
+        ("configs/README.md", "configs/README_EN.md"),
+        ("configs/tcga/README.md", "configs/tcga/README_EN.md"),
+        ("data/README.md", "data/README_EN.md"),
+        ("data_processing/README.md", "data_processing/README_EN.md"),
+        (
+            "data_processing/templates/README.md",
+            "data_processing/templates/README_EN.md",
+        ),
+        ("docs/data_contract.md", "docs/data_contract_EN.md"),
+        ("docs/pt_formats.md", "docs/pt_formats_EN.md"),
+        (
+            "docs/training_and_inference.md",
+            "docs/training_and_inference_EN.md",
+        ),
+        ("list/README.md", "list/README_EN.md"),
+        ("pretrained_models/README.md", "pretrained_models/README_EN.md"),
+        ("scripts/README.md", "scripts/README_EN.md"),
+        ("tests/README.md", "tests/README_EN.md"),
+    ]
+
+    for chinese, english in pairs:
+        chinese_path = ROOT / chinese
+        english_path = ROOT / english
+        assert chinese_path.is_file(), chinese_path
+        assert english_path.is_file(), english_path
+        assert english_path.name in chinese_path.read_text(encoding="utf-8")
+        assert chinese_path.name in english_path.read_text(encoding="utf-8")
+
+
 def test_example_configs_contain_required_sections():
     train = yaml.safe_load((ROOT / "configs/train.example.yaml").read_text(encoding="utf-8"))
     inference = yaml.safe_load((ROOT / "configs/inference.example.yaml").read_text(encoding="utf-8"))
@@ -15,19 +48,24 @@ def test_example_configs_contain_required_sections():
     assert {"task_mode", "model_path", "output_path", "data", "models", "MoE"}.issubset(inference)
     assert inference["model_path"].startswith("pretrained_models/mjepa/")
     assert inference["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
+    assert "drop" not in inference["MoE"]
+    assert "folder" not in train["logging"]
+    assert set(inference["MoE"]) == {"num_experts", "k", "hidden_size"}
+    assert set(train["logging"]) == {"write_tag"}
 
 
 def test_all_dfi_inference_example_uses_portable_layout():
-    path = ROOT / "configs/inference.ALL_DFI_fold_0.yaml"
+    path = ROOT / "configs/inference.ALL_DFI_full_cohort.yaml"
     config = yaml.safe_load(path.read_text(encoding="utf-8"))
 
-    assert config["run_name"] == "fold_0"
+    assert config["run_name"] == "full_cohort"
     assert config["model_path"] == (
-        "pretrained_models/mjepa/ALL_DFI/fold_0/prognosis-best.pth.tar"
+        "pretrained_models/mjepa/ALL_DFI/full_cohort/prognosis_full_final.pth.tar"
     )
     assert config["data"]["csv_path"] == (
-        "data/processed/tcga/survival/ALL_DFI_fold_0_val.csv"
+        "data/processed/tcga/survival/ALL_DFI_dataset.csv"
     )
+    assert "drop" not in config["MoE"]
     assert config["models"]["geno_raw_dim"] == 19766
     assert (ROOT / "USAGE.md").is_file()
 
@@ -37,12 +75,13 @@ def test_tcga_configs_are_complete_and_portable():
     assert len(configs) == 84
 
     required_sections = {"data", "models", "MoE", "optimization", "meta", "logging", "tb"}
+    expected_top_level = required_sections | {"output_path", "seed", "num_folds"}
     expected_endpoints = {"OS", "DSS", "DFI", "PFI"}
     endpoints_by_cancer = {}
 
     for path in configs:
         config = yaml.safe_load(path.read_text(encoding="utf-8"))
-        assert required_sections.issubset(config), path
+        assert set(config) == expected_top_level, path
         _, cancer, endpoint = path.stem.split("_")
         endpoints_by_cancer.setdefault(cancer, set()).add(endpoint)
 
@@ -64,7 +103,9 @@ def test_publishable_text_has_no_original_server_paths():
     suffixes = {".py", ".md", ".yaml", ".yml", ".sh"}
     package_paths = [
         ROOT / "README.md",
+        ROOT / "README_EN.md",
         ROOT / "USAGE.md",
+        ROOT / "USAGE_EN.md",
         ROOT / "main.py",
         ROOT / "environment.yml",
     ]
