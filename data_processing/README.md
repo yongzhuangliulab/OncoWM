@@ -1,6 +1,5 @@
 # Custom Data Conversion Scripts
 
-[中文](README.md)
 
 These scripts convert cohort-specific raw data into standard M-JEPA inputs. They form a **data adaptation layer** and are separate from the model-side dataset in `src/datasets/`.
 
