@@ -1,7 +1,5 @@
 # Downloaded Model Layout
 
-[中文](README.md)
-
 Place models downloaded from external sources under this directory. Weight files are ignored by Git; only this guide is tracked.
 
 ```text
