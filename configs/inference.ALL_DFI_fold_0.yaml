@@ -1,5 +1,5 @@
-# Reproduced ALL_DFI fold-0 full-modality inference configuration.
-# Run from the repository root.
+# ALL_DFI fold-0 full-modality inference example.
+# Copy and edit the paths for your own data and checkpoint.
 task_mode: prognosis
 run_name: fold_0
 model_path: pretrained_models/mjepa/ALL_DFI/fold_0/prognosis-best.pth.tar

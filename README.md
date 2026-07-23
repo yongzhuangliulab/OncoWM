@@ -4,14 +4,14 @@ M-JEPA 是一个多模态生存预测研究项目。本仓库以**模型实际�
 
 > 当前仓库包含 v5.3 模型训练、推理、C-index 评估，以及临床、生存标签和突变三类数据的示例转换脚本。病理切片（SVS）与转录组的特征提取流程暂未纳入本轮整理。
 
-首次使用请直接阅读 [完整复现指南](REPRODUCIBILITY.md)。该指南覆盖环境、数据/权重放置、两阶段训练、已训练模型推理、评估与常见错误，并记录了一次 856 例 ALL_DFI fold 0 端到端验证结果。
+首次使用请阅读 [使用指南](USAGE.md)，其中包含安装、数据与权重准备、配置、训练、推理、评估和常见问题。
 
 ## 仓库结构
 
 ```text
 mjepa/
 ├── README.md
-├── REPRODUCIBILITY.md       # 从克隆到训练、推理和评估的完整复现步骤
+├── USAGE.md                 # 安装、训练、推理和评估说明
 ├── environment.yml
 ├── requirements.txt
 ├── main.py                  # align/prognosis 两阶段训练入口
@@ -134,7 +134,7 @@ python -m src.evaluate \
   --yaml configs/inference.ALL_DFI_fold_0.yaml
 ```
 
-完整的服务器准备步骤见 [复现指南](REPRODUCIBILITY.md)，阶段关系和实现注意事项见 [训练与推理说明](docs/training_and_inference.md)。
+完整使用步骤见 [使用指南](USAGE.md)，阶段关系和实现注意事项见 [训练与推理说明](docs/training_and_inference.md)。
 
 仓库还提供 [84 份 TCGA 五折配置](configs/tcga/README.md)，覆盖 21 个癌种/队列和 OS、DSS、DFI、PFI 四类终点。配置使用仓库相对路径，不包含原服务器目录。
 
