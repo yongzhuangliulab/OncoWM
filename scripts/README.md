@@ -1,6 +1,5 @@
 # Command Wrappers
 
-[中文](README.md)
 
 The scripts can be invoked from any directory and automatically switch to the repository root. They use the active environment's `python` by default. Override it with `PYTHON_BIN=/path/to/python`.
 
