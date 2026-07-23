@@ -26,7 +26,7 @@ logger = logging.getLogger()
 def main(args):
     seed = args.get('seed', 10)  
     num_folds = args.get('num_folds', 5) 
-    logger.info(f"全局随机种子: {seed}，模式: {num_folds}-Fold CV")
+    logger.info(f"Global seed: {seed}, mode: {num_folds}-fold cross-validation")
     
     random.seed(seed)
     np.random.seed(seed)
@@ -58,11 +58,11 @@ def main(args):
     base_final_lr = task_opt['final_lr']
     
     if task_mode == 'prognosis':
-        logger.info(f"Linear Probing 冻结骨干并训练预后头，LR: {base_lr}，WD: {base_wd}")
+        logger.info(f"Linear probing freezes the backbone and trains the prognosis head, LR: {base_lr}, WD: {base_wd}")
     
     batch_size = args['data'].get(f'{task_mode}_batch_size', 90)
 
-    logger.info(f"Session: {run_name}，Task: {task_mode.upper()}，LR: {base_lr}，Batch: {batch_size}")
+    logger.info(f"Session: {run_name}, task: {task_mode.upper()}, LR: {base_lr}, batch: {batch_size}")
     
     pin_mem = args['data']['pin_mem']
     num_workers = args['data']['num_workers']
@@ -117,7 +117,7 @@ def main(args):
         fold_dir = os.path.join(folder, f'fold_{fold}')
         os.makedirs(fold_dir, exist_ok=True)
 
-        logger.info(f"开始训练 Fold {fold}/{num_folds-1}")
+        logger.info(f"Starting training for fold {fold}/{num_folds-1}")
         
         mm_jepa = init_m3jepa(
             text_encoder_name=text_encoder_name, path_dim=path_dim, 
@@ -137,10 +137,10 @@ def main(args):
                 state_dict = {k.replace('module.', ''): v for k, v in (checkpoint['mm_jepa'] if 'mm_jepa' in checkpoint else checkpoint).items()}
                 state_dict = {k: v for k, v in state_dict.items() if not k.startswith("head_")}
                 mm_jepa.load_state_dict(state_dict, strict=False)
-                logger.info(f"Fold {fold} 已加载联合表征对齐权重并过滤分类头")
+                logger.info(f"Fold {fold} loaded alignment weights and excluded prognosis-head weights.")
             else:
                 if args.get('allow_prognosis_from_scratch', False):
-                    logger.warning(f"未找到 {resume_checkpoint}；已显式允许 Prognosis 从头训练。")
+                    logger.warning(f"Checkpoint not found at {resume_checkpoint}; prognosis training from scratch is explicitly enabled.")
                 else:
                     raise FileNotFoundError(
                         f"Prognosis requires the matching alignment checkpoint: {resume_checkpoint}. "
@@ -267,7 +267,7 @@ def main(args):
                 csv_logger.log(epoch + 1, itr, loss, task_type, etime)
 
                 if itr % 10 == 0:
-                    logger.info(f'Fold {fold}，Epoch {epoch + 1}，Iteration {itr}/{ipe}，Loss: {loss:.4f}，LR: {new_lr:.8f}，Drop: {base_drop_prob:.3f}')
+                    logger.info(f'Fold {fold}, epoch {epoch + 1}, iteration {itr}/{ipe}, loss: {loss:.4f}, LR: {new_lr:.8f}, drop: {base_drop_prob:.3f}')
 
             mm_jepa.eval()
             val_loss_meter = AverageMeter()
@@ -325,12 +325,12 @@ def main(args):
                     c_index = concordance_index(np.array(all_surv_times), -np.array(all_risk_scores), np.array(all_surv_events))
                     current_metric = c_index
                     metric_name = "C-index"
-                    logger.info(f"Fold {fold}，Epoch {epoch + 1}，Val C-index: {c_index:.4f}，Val Cox Loss: {val_loss_meter.avg:.4f}")
+                    logger.info(f"Fold {fold}, epoch {epoch + 1}, validation C-index: {c_index:.4f}, validation Cox loss: {val_loss_meter.avg:.4f}")
                     if writer: writer.add_scalar(f'Val/{task_mode.capitalize()}_C-index', c_index, epoch)
                 except Exception as e:
                     logger.warning(f"C-index failed: {e}. Fallback to Loss.")
             else:
-                logger.info(f"Fold {fold}，Epoch {epoch + 1}，Val Loss: {val_loss_meter.avg:.4f}")
+                logger.info(f"Fold {fold}, epoch {epoch + 1}, validation loss: {val_loss_meter.avg:.4f}")
 
             is_valid_to_save = True
             if task_mode == 'align' and epoch < align_protect_epochs: 
@@ -356,41 +356,41 @@ def main(args):
                 }
 
                 torch.save(checkpoint, best_path)
-                logger.info(f'最佳模型已保存至: {best_path}，{metric_name}: {best_metric:.4f}')
+                logger.info(f'Best model saved to: {best_path}, {metric_name}: {best_metric:.4f}')
             
             is_protected = not is_valid_to_save
             
             if not is_protected:
                 early_stop(current_metric)
                 if early_stop.early_stop:
-                    logger.info(f'Fold {fold} 触发 Early Stopping')
+                    logger.info(f'Early stopping triggered for fold {fold}.')
                     break
             else:
-                logger.info(f"Fold {fold}，Epoch {epoch + 1}，处于难度爬升保护期，跳过保存与 EarlyStopping 计数。")
+                logger.info(f"Fold {fold}, epoch {epoch + 1}, alignment protection period; skipping checkpointing and the early-stopping counter.")
                 
         if writer: writer.close()
         
         fold_metrics.append(best_metric)
         fold_best_epochs.append(best_epoch_for_fold)
-        logger.info(f"Fold {fold} 结束，最佳 {metric_name}: {best_metric:.4f}")
+        logger.info(f"Fold {fold} completed, best {metric_name}: {best_metric:.4f}")
 
         if best_metric > overall_best_metric:
             overall_best_metric = best_metric
             overall_best_fold = fold
             best_overall_path = os.path.join(folder, f'{task_mode}-best-overall.pth.tar')
             shutil.copy(best_path, best_overall_path)
-            logger.info(f"更新全局最优模型，Fold {fold}，保存路径: {best_overall_path}")
+            logger.info(f"Updated the overall best model from fold {fold}, saved to: {best_overall_path}")
 
     avg_metric = np.mean(fold_metrics)
     std_metric = np.std(fold_metrics)
     mean_epoch = np.mean(fold_best_epochs)
     std_epoch = np.std(fold_best_epochs)
-    logger.info(f"{num_folds}-Fold Cross Validation 最终报告")
-    logger.info(f"任务: {task_mode.upper()}，评估指标: {metric_name}")
+    logger.info(f"Final {num_folds}-fold cross-validation report")
+    logger.info(f"Task: {task_mode.upper()}, metric: {metric_name}")
     for i, m in enumerate(fold_metrics):
         logger.info(f"Fold {i}: {m:.4f}")
     logger.info(f"Average {metric_name}: {avg_metric:.4f} ± {std_metric:.4f}")
-    logger.info(f"Overall Best Model，Fold {overall_best_fold}，{metric_name}: {overall_best_metric:.4f}")
+    logger.info(f"Overall best model, fold {overall_best_fold}, {metric_name}: {overall_best_metric:.4f}")
 
     epoch_log_path = os.path.join(folder, f"{run_name}_{task_mode}_epoch_summary.log")
     with open(epoch_log_path, 'w', encoding='utf-8') as f:
