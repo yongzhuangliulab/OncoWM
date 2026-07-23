@@ -72,7 +72,7 @@ def init_opt(
     """
     初始化 AdamW 优化器以及学习率和权重衰减调度器。
     """
-    logger.info("Initializing Optimizer and Schedulers...")
+    logger.info("Initializing optimizer and schedulers")
 
     optimizer = torch.optim.AdamW(params_to_optimize, lr=ref_lr, weight_decay=wd)
     total_iters = int(iterations_per_epoch * num_epochs * ipe_scale)

@@ -26,7 +26,7 @@ def main(args):
     status_col = 'survival_event' 
     
     if time_col not in df_scores.columns or status_col not in df_scores.columns:
-        logger.info(f"预测结果中未找到标签列 ({time_col}, {status_col})，尝试从原始数据集加载...")
+        logger.info(f"预测结果中未找到标签列 ({time_col}, {status_col})，尝试从原始数据集加载。")
         orig_csv_path = params['data']['csv_path']
         if not os.path.exists(orig_csv_path):
             raise FileNotFoundError(f"找不到原始数据集: {orig_csv_path}")
@@ -73,10 +73,10 @@ def main(args):
     if (time < 0).any():
         raise ValueError("survival_time must be non-negative")
     
-    logger.info("正在计算 C-index...")
+    logger.info("正在计算 C-index。")
     c_index = concordance_index_censored(status, time, risk)[0]
     
-    logger.info("正在尝试计算 Time-dependent AUC 和 iAUC...")
+    logger.info("正在计算 Time-dependent AUC 和 iAUC。")
     y = np.array(
         [(s, t) for s, t in zip(status, time)],
         dtype=[('status', 'bool'), ('time', 'f8')]
@@ -131,7 +131,7 @@ def main(args):
     output_dir = os.path.dirname(args.scores)
     output_csv_path = os.path.join(output_dir, 'evaluation_metrics.csv')
     df_results.to_csv(output_csv_path, index=False)
-    logger.info(f"✅ 评估结果已保存至: {output_csv_path}")
+    logger.info(f"评估结果已保存至: {output_csv_path}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Calculate C-index and Time-dependent AUC")
