@@ -77,7 +77,7 @@ class DatasetManager:
         self._filter_valid_samples()
 
     def load_offline_dicts(self, path_pt, text_pt, geno_pt, tran_pt):
-        if self.rank == 0: logger.info(">>> 开始加载所有模态样本级离线字典...")
+        if self.rank == 0: logger.info("开始加载所有模态样本级离线字典")
         paths = {
             'pathology': path_pt,
             'clinical': text_pt,
@@ -111,7 +111,7 @@ class DatasetManager:
                 valid_indices.append(idx)
                 
         self.full_df = full_df.loc[valid_indices].reset_index(drop=True)
-        if self.rank == 0: logger.info(f">>> 校验完成，有效样本数: {len(self.full_df)}")
+        if self.rank == 0: logger.info(f"校验完成，有效样本数: {len(self.full_df)}")
         if self.full_df.empty:
             raise ValueError("No shared sample_id exists across survival labels and all four training modalities")
 
@@ -132,7 +132,7 @@ class DatasetManager:
 
         if self.rank == 0: 
             val_events = val_df['survival_event'].sum()
-            logger.info(f">>> Fold {fold_idx}: Train samples: {len(train_df)}, Val samples: {len(val_df)} (Val Events: {int(val_events)})")
+            logger.info(f"Fold {fold_idx}，训练样本: {len(train_df)}，验证样本: {len(val_df)}，验证事件: {int(val_events)}")
 
         train_dataset = MedicalDataset(train_df, self.path_dict, self.text_dict, self.geno_dict, self.tran_dict)
         val_dataset = MedicalDataset(val_df, self.path_dict, self.text_dict, self.geno_dict, self.tran_dict)
@@ -154,7 +154,7 @@ class DatasetManager:
 
     def get_full_cohort_data(self):
         if self.rank == 0: 
-            logger.info(f">>> 启动全量数据装载: 共计 {len(self.full_df)} 个有效多模态样本")
+            logger.info(f"开始加载全量数据，共 {len(self.full_df)} 个有效多模态样本")
 
         full_dataset = MedicalDataset(
             self.full_df, self.path_dict, self.text_dict, self.geno_dict, self.tran_dict

@@ -136,7 +136,7 @@ def main(args):
         is_completed = os.path.exists(os.path.join(out_dir, 'cluster_embeddings.npz'))
         
     if is_completed and not args.force:
-        logger.info(f"⏭️ 目标文件已全部存在于 {out_dir}，跳过本次 {task_mode.upper()} 模式的运行。")
+        logger.info(f"目标文件已存在于 {out_dir}，跳过 {task_mode.upper()} 模式。")
         return
 
     default_device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -145,7 +145,7 @@ def main(args):
         raise RuntimeError(f"CUDA device requested but CUDA is unavailable: {device}")
     use_bfloat16 = bool(params.get('use_bfloat16', True)) and device.type == 'cuda'
 
-    logger.info(f"🚀 初始化推理模式: {task_mode.upper()} | 设备: {device}")
+    logger.info(f"初始化推理模式: {task_mode.upper()}，设备: {device}")
 
     d_params = params['data']
     dataset = InferenceDataset(
@@ -181,7 +181,7 @@ def main(args):
     if not (ckpt_path and os.path.exists(ckpt_path)):
         raise FileNotFoundError(f"找不到 YAML 中指定的 model_path: {ckpt_path}")
         
-    logger.info(f"📦 正在加载预训练权重: {ckpt_path}")
+    logger.info(f"正在加载预训练权重: {ckpt_path}")
     checkpoint = torch.load(ckpt_path, map_location='cpu', weights_only=False)
 
     raw_state_dict = checkpoint.get('mm_jepa', checkpoint.get('state_dict', checkpoint))
@@ -207,7 +207,7 @@ def main(args):
 
     hook_handle = mm_jepa.norm_joint.register_forward_hook(hook_fn)
 
-    logger.info(f"⚡ 开始执行严格推理提取 | 模式: {task_mode.upper()}")
+    logger.info(f"开始推理提取，模式: {task_mode.upper()}")
     
     for sample in tqdm(dataloader, desc=f"Inference ({task_mode})"):
         clin_ids = sample['clinical_text']['input_ids'].to(device) if sample['clinical_text'] else None
@@ -240,20 +240,20 @@ def main(args):
     
     if task_mode == 'align':
         np.savez_compressed(os.path.join(out_dir, 'joint_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
-        logger.info(f"✅ Align 共识表征提取完毕 -> {out_dir}/joint_embeddings.npz")
+        logger.info(f"Align 共识表征已保存至: {out_dir}/joint_embeddings.npz")
         
     elif task_mode == 'prognosis':
         np.savez_compressed(os.path.join(out_dir, 'prog_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
         
         df_risk = pd.DataFrame({'sample_id': all_ids, 'risk_score': results_dict['risk_scores']})
         df_risk.to_csv(os.path.join(out_dir, 'prognosis_risk_scores.csv'), index=False)
-        logger.info(f"✅ Prognosis 预后表征及评分提取完毕")
-        logger.info(f"  - 特征空间保存至: {out_dir}/prog_embeddings.npz")
-        logger.info(f"  - 风险评分保存至: {out_dir}/prognosis_risk_scores.csv")
+        logger.info("Prognosis 预后表征及评分提取完成")
+        logger.info(f"特征空间已保存至: {out_dir}/prog_embeddings.npz")
+        logger.info(f"风险评分已保存至: {out_dir}/prognosis_risk_scores.csv")
         
     elif task_mode == 'cluster':
         np.savez_compressed(os.path.join(out_dir, 'cluster_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
-        logger.info(f"✅ Cluster 聚类特征提取完毕 -> {out_dir}/cluster_embeddings.npz")
+        logger.info(f"Cluster 聚类特征已保存至: {out_dir}/cluster_embeddings.npz")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run M-JEPA inference from a YAML config")
