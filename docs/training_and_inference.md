@@ -1,6 +1,5 @@
 # Training, Inference, and Survival Evaluation
 
-[中文](training_and_inference.md)
 
 For installation and file placement, see the [Usage Guide](../USAGE_EN.md).
 
