@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def main(args):
-    logger.info(f"读取风险评分文件: {args.scores}")
+    logger.info(f"Reading risk score file: {args.scores}")
     df_scores = pd.read_csv(args.scores)
     missing_score_columns = {'sample_id', 'risk_score'}.difference(df_scores.columns)
     if missing_score_columns:
@@ -18,7 +18,7 @@ def main(args):
     if df_scores['sample_id'].duplicated().any():
         raise ValueError("Risk score CSV contains duplicate sample IDs")
     
-    logger.info(f"读取 YAML 配置文件: {args.yaml}")
+    logger.info(f"Reading YAML configuration: {args.yaml}")
     with open(args.yaml, 'r') as f:
         params = yaml.safe_load(f)
         
@@ -26,7 +26,7 @@ def main(args):
     status_col = 'survival_event' 
     
     if time_col not in df_scores.columns or status_col not in df_scores.columns:
-        logger.info(f"预测结果中未找到标签列 ({time_col}, {status_col})，尝试从原始数据集加载。")
+        logger.info(f"Prediction output does not contain ({time_col}, {status_col}); loading labels from the source dataset.")
         orig_csv_path = params['data']['csv_path']
         if not os.path.exists(orig_csv_path):
             raise FileNotFoundError(f"找不到原始数据集: {orig_csv_path}")
@@ -55,7 +55,7 @@ def main(args):
             how='inner',
             validate='one_to_one',
         )
-        logger.info(f"成功将真实标签合并至预测结果，共匹配 {len(df_scores)} 个样本。")
+        logger.info(f"Merged ground-truth labels for {len(df_scores)} samples.")
     
     df_scores = df_scores.dropna(subset=[time_col, status_col, 'risk_score'])
     
@@ -73,10 +73,10 @@ def main(args):
     if (time < 0).any():
         raise ValueError("survival_time must be non-negative")
     
-    logger.info("正在计算 C-index。")
+    logger.info("Computing C-index.")
     c_index = concordance_index_censored(status, time, risk)[0]
     
-    logger.info("正在计算 Time-dependent AUC 和 iAUC。")
+    logger.info("Computing time-dependent AUC and iAUC.")
     y = np.array(
         [(s, t) for s, t in zip(status, time)],
         dtype=[('status', 'bool'), ('time', 'f8')]
@@ -97,7 +97,7 @@ def main(args):
             valid_times.append(t)
             valid_labels.append(label)
         else:
-            logger.warning(f"时间点 {label} ({t}) 超出随访时间范围 (Min Event: {min_time:.1f}, Max: {max_time:.1f})，跳过该时间点。")
+            logger.warning(f"Time point {label} ({t}) is outside the follow-up range (minimum event time: {min_time:.1f}, maximum time: {max_time:.1f}); skipping.")
             results_list.append({'Metric': f'AUC_{label}', 'Value': np.nan})
 
     if valid_times:
@@ -108,17 +108,17 @@ def main(args):
                 results_list.append({'Metric': f'AUC_{label}', 'Value': auc_val})
             
             results_list.append({'Metric': 'iAUC', 'Value': mean_auc})
-            logger.info("AUC/iAUC 计算成功。")
+            logger.info("AUC and iAUC computed successfully.")
             
         except Exception as e:
-            logger.warning(f"计算 Time-dependent AUC 和 iAUC 时失败: {e}")
-            logger.warning("已跳过 iAUC 计算，将仅输出 C-index。")
+            logger.warning(f"Failed to compute time-dependent AUC and iAUC: {e}")
+            logger.warning("Skipping iAUC; only C-index will be reported.")
             for label in valid_labels:
                 results_list.append({'Metric': f'AUC_{label}', 'Value': np.nan})
             results_list.append({'Metric': 'iAUC', 'Value': np.nan})
     else:
         results_list.append({'Metric': 'iAUC', 'Value': np.nan})
-        logger.warning("所有预设的时间点均不在有效范围内，无法计算 AUC。将仅输出 C-index。")
+        logger.warning("No configured time point is within the valid range; only C-index will be reported.")
 
     df_results = pd.DataFrame(results_list)
     
@@ -131,7 +131,7 @@ def main(args):
     output_dir = os.path.dirname(args.scores)
     output_csv_path = os.path.join(output_dir, 'evaluation_metrics.csv')
     df_results.to_csv(output_csv_path, index=False)
-    logger.info(f"评估结果已保存至: {output_csv_path}")
+    logger.info(f"Evaluation results saved to: {output_csv_path}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Calculate C-index and Time-dependent AUC")

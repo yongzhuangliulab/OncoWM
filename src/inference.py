@@ -30,7 +30,7 @@ def set_deterministic_seed(seed=42):
 class InferenceDataset(Dataset):
     def __init__(self, csv_path, path_pt=None, text_pt=None, geno_pt=None, tran_pt=None):
         self.full_df = pd.read_csv(csv_path)
-        logger.info(f"原始队列 CSV 共 {len(self.full_df)} 个样本。")
+        logger.info(f"Loaded cohort CSV with {len(self.full_df)} samples.")
 
         self.path_dict = self._load_optional_pt(path_pt, 'pathology')
         self.text_dict = self._load_optional_pt(text_pt, 'clinical')
@@ -55,14 +55,14 @@ class InferenceDataset(Dataset):
         else:
             raise ValueError("Inference requires at least one enabled modality PT file")
 
-        logger.info(f"取多模态数据交集后，最终保留 {len(self.full_df)} 个齐备样本用于推理。")
+        logger.info(f"Retained {len(self.full_df)} samples after intersecting the enabled modalities.")
         if self.full_df.empty:
             raise ValueError("No shared sample_id exists between the cohort CSV and enabled modalities")
 
     @staticmethod
     def _load_optional_pt(path, modality):
         if path is None:
-            logger.info("未启用 %s 模态。", modality)
+            logger.info("%s modality is disabled.", modality)
             return {}
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Configured {modality} PT does not exist: {path}")
@@ -136,7 +136,7 @@ def main(args):
         is_completed = os.path.exists(os.path.join(out_dir, 'cluster_embeddings.npz'))
         
     if is_completed and not args.force:
-        logger.info(f"目标文件已存在于 {out_dir}，跳过 {task_mode.upper()} 模式。")
+        logger.info(f"Output files already exist in {out_dir}; skipping {task_mode.upper()} mode.")
         return
 
     default_device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -145,7 +145,7 @@ def main(args):
         raise RuntimeError(f"CUDA device requested but CUDA is unavailable: {device}")
     use_bfloat16 = bool(params.get('use_bfloat16', True)) and device.type == 'cuda'
 
-    logger.info(f"初始化推理模式: {task_mode.upper()}，设备: {device}")
+    logger.info(f"Initializing inference mode: {task_mode.upper()}, device: {device}")
 
     d_params = params['data']
     dataset = InferenceDataset(
@@ -181,7 +181,7 @@ def main(args):
     if not (ckpt_path and os.path.exists(ckpt_path)):
         raise FileNotFoundError(f"找不到 YAML 中指定的 model_path: {ckpt_path}")
         
-    logger.info(f"正在加载预训练权重: {ckpt_path}")
+    logger.info(f"Loading pretrained checkpoint: {ckpt_path}")
     checkpoint = torch.load(ckpt_path, map_location='cpu', weights_only=False)
 
     raw_state_dict = checkpoint.get('mm_jepa', checkpoint.get('state_dict', checkpoint))
@@ -207,7 +207,7 @@ def main(args):
 
     hook_handle = mm_jepa.norm_joint.register_forward_hook(hook_fn)
 
-    logger.info(f"开始推理提取，模式: {task_mode.upper()}")
+    logger.info(f"Starting inference extraction, mode: {task_mode.upper()}")
     
     for sample in tqdm(dataloader, desc=f"Inference ({task_mode})"):
         clin_ids = sample['clinical_text']['input_ids'].to(device) if sample['clinical_text'] else None
@@ -240,20 +240,20 @@ def main(args):
     
     if task_mode == 'align':
         np.savez_compressed(os.path.join(out_dir, 'joint_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
-        logger.info(f"Align 共识表征已保存至: {out_dir}/joint_embeddings.npz")
+        logger.info(f"Alignment embeddings saved to: {out_dir}/joint_embeddings.npz")
         
     elif task_mode == 'prognosis':
         np.savez_compressed(os.path.join(out_dir, 'prog_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
         
         df_risk = pd.DataFrame({'sample_id': all_ids, 'risk_score': results_dict['risk_scores']})
         df_risk.to_csv(os.path.join(out_dir, 'prognosis_risk_scores.csv'), index=False)
-        logger.info("Prognosis 预后表征及评分提取完成")
-        logger.info(f"特征空间已保存至: {out_dir}/prog_embeddings.npz")
-        logger.info(f"风险评分已保存至: {out_dir}/prognosis_risk_scores.csv")
+        logger.info("Prognosis embeddings and risk scores generated.")
+        logger.info(f"Prognosis embeddings saved to: {out_dir}/prog_embeddings.npz")
+        logger.info(f"Risk scores saved to: {out_dir}/prognosis_risk_scores.csv")
         
     elif task_mode == 'cluster':
         np.savez_compressed(os.path.join(out_dir, 'cluster_embeddings.npz'), sample_id=all_ids, joint_embedding=joint_emb_cat)
-        logger.info(f"Cluster 聚类特征已保存至: {out_dir}/cluster_embeddings.npz")
+        logger.info(f"Cluster embeddings saved to: {out_dir}/cluster_embeddings.npz")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run M-JEPA inference from a YAML config")
