@@ -1,6 +1,5 @@
 # M-JEPA Usage Guide
 
-[中文](USAGE.md)
 
 This guide explains how to install M-JEPA, prepare processed inputs and model weights, train a model, run inference with a published full-cohort checkpoint, and evaluate survival predictions.
 
