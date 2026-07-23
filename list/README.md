@@ -1,7 +1,5 @@
 # Fixed Gene Lists
 
-[中文](README.md)
-
 This directory contains 26 model-versioned gene lists: one pan-cancer list and cohort-specific lists for BLCA, BRCA, CESC, COAD, ESCA, GBM, HNSC, KIRC, KIRP, LGG, LIHC, LUAD, LUSC, OV, PAAD, PCPG, PRAD, READ, SARC, SKCM, STAD, TGCT, THCA, THYM, and UCEC. They are named:
 
 ```text
