@@ -9,7 +9,6 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-# 引入独立模型脚本
 from src.models.mjepa import init_m3jepa
 from src.datasets.medical import DatasetManager
 from src.training import init_opt
@@ -78,10 +77,8 @@ def main(args):
     geno_dim = args['models'].get('geno_dim', 512)
     tran_dim = args['models'].get('tran_dim', 643)
     
-    num_experts = args['MoE']['num_experts']
-    k_expert = args['MoE']['k']
-    drop_rate = args['MoE']['drop']
-    hidden_size = args['MoE']['hidden_size']
+    drop_rate = args['models']['dropout_rate']
+    hidden_size = args['models']['hidden_size']
 
     tag = args['logging']['write_tag']
     base_output_dir = args.get('output_path', args['logging'].get('folder', './experiment_logs'))
@@ -126,7 +123,7 @@ def main(args):
         mm_jepa = init_m3jepa(
             text_encoder_name=text_encoder_name, path_dim=path_dim, 
             geno_raw_dim=geno_raw_dim, geno_dim=geno_dim, 
-            tran_dim=tran_dim, num_experts=num_experts, hidden_size=hidden_size, k_expert=k_expert, dropout_rate=drop_rate
+            tran_dim=tran_dim, hidden_size=hidden_size, dropout_rate=drop_rate
         )
         
         log_file = os.path.join(fold_dir, f'{tag}_{task_mode}.csv')
@@ -194,7 +191,7 @@ def main(args):
 
         ipe = len(train_loader)
 
-        optimizer, scaler, scheduler, wd_scheduler = init_opt(
+        optimizer, scheduler, wd_scheduler = init_opt(
             params_to_optimize=params_to_optimize,  
             wd=base_wd,               
             final_wd=base_final_wd,        
@@ -203,9 +200,8 @@ def main(args):
             final_lr=base_final_lr,        
             iterations_per_epoch=ipe, 
             warmup=base_warmup,     
-            num_epochs=num_epochs,    
-            ipe_scale=ipe_scale,            
-            use_bfloat16=True         
+            num_epochs=num_epochs,
+            ipe_scale=ipe_scale
         )
         
         early_stop = EarlyStopping(patience=patience, verbose=True, delta=0, maximize=True)
@@ -366,7 +362,7 @@ def main(args):
             is_protected = not is_valid_to_save
             
             if not is_protected:
-                early_stop(current_metric, mm_jepa)
+                early_stop(current_metric)
                 if early_stop.early_stop:
                     logger.info(f'Early stopping triggered for Fold {fold}!')
                     break

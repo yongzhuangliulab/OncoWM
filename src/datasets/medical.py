@@ -35,7 +35,7 @@ class MedicalDataset(Dataset):
         survival_time = float(row.get('survival_time', 0.0))
         survival_event = float(row.get('survival_event', 0.0))
 
-        # [DeepSurv 优化] 增加极小扰动打破 Tied Times，稳定 Cox 梯度
+        # Break tied event times deterministically for a stable Cox gradient.
         survival_time += (idx % 1000) * 1e-5 
 
         return {
@@ -115,9 +115,6 @@ class DatasetManager:
         if self.full_df.empty:
             raise ValueError("No shared sample_id exists across survival labels and all four training modalities")
 
-    # ==========================================
-    # [DeepSurv 进阶分层] 生存事件 + 生存时间联合分层
-    # ==========================================
     def resplit_data(self, fold_idx=0):
         skf = StratifiedKFold(n_splits=self.num_folds, shuffle=True, random_state=self.seed)
         indices = list(range(len(self.full_df)))
@@ -159,12 +156,10 @@ class DatasetManager:
         if self.rank == 0: 
             logger.info(f">>> 启动全量数据装载: 共计 {len(self.full_df)} 个有效多模态样本")
 
-        # 直接使用包含所有有效样本的 full_df 实例化 Dataset
         full_dataset = MedicalDataset(
             self.full_df, self.path_dict, self.text_dict, self.geno_dict, self.tran_dict
         )
 
-        # 保持与你原有分布式架构一致的 Sampler
         full_sampler = DistributedSampler(
             full_dataset, num_replicas=self.world_size, rank=self.rank, shuffle=True
         )
@@ -175,7 +170,7 @@ class DatasetManager:
             sampler=full_sampler,
             num_workers=self.num_workers, 
             pin_memory=self.pin_mem, 
-            drop_last=False # 全量特征提取或训练不应丢弃尾部数据
+            drop_last=False
         )
         
         return full_dataset, full_loader, full_sampler

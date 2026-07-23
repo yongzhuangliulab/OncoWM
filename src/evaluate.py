@@ -22,9 +22,6 @@ def main(args):
     with open(args.yaml, 'r') as f:
         params = yaml.safe_load(f)
         
-    # ==========================================
-    # 1. 确保获取生存标签 (OS_time, OS_status)
-    # ==========================================
     time_col = 'survival_time'    
     status_col = 'survival_event' 
     
@@ -76,15 +73,9 @@ def main(args):
     if (time < 0).any():
         raise ValueError("survival_time must be non-negative")
     
-    # ==========================================
-    # 2. 计算 C-index
-    # ==========================================
     logger.info("正在计算 C-index...")
     c_index = concordance_index_censored(status, time, risk)[0]
     
-    # ==========================================
-    # 3. 计算 1年, 3年, 5年 AUC 和 iAUC (带异常处理)
-    # ==========================================
     logger.info("正在尝试计算 Time-dependent AUC 和 iAUC...")
     y = np.array(
         [(s, t) for s, t in zip(status, time)],
@@ -111,7 +102,6 @@ def main(args):
 
     if valid_times:
         try:
-            # 尝试计算 time-dependent AUC
             auc_values, mean_auc = cumulative_dynamic_auc(y, y, risk, valid_times)
             
             for label, auc_val in zip(valid_labels, auc_values):
@@ -121,7 +111,6 @@ def main(args):
             logger.info("AUC/iAUC 计算成功。")
             
         except Exception as e:
-            # 如果计算失败（例如特定时间点样本分布不均导致报错），捕获异常并不停止程序
             logger.warning(f"计算 Time-dependent AUC 和 iAUC 时失败: {e}")
             logger.warning("已跳过 iAUC 计算，将仅输出 C-index。")
             for label in valid_labels:
@@ -131,9 +120,6 @@ def main(args):
         results_list.append({'Metric': 'iAUC', 'Value': np.nan})
         logger.warning("所有预设的时间点均不在有效范围内，无法计算 AUC。将仅输出 C-index。")
 
-    # ==========================================
-    # 4. 打印并保存结果到 CSV
-    # ==========================================
     df_results = pd.DataFrame(results_list)
     
     print("\n" + "="*40)
