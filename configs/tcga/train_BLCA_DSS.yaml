@@ -1,0 +1,48 @@
+# TCGA BLCA DSS five-fold configuration.
+# Paths are relative to the repository root.
+output_path: outputs/train/BLCA
+seed: 43
+meta:
+  use_bfloat16: true
+data:
+  num_workers: 0
+  pin_mem: true
+  csv_path: data/processed/tcga/survival/BLCA_DSS_dataset.csv
+  path_pt_path: data/processed/tcga/pathology/TCGA_TITAN_first_slice_dict.pt
+  text_pt_path: data/processed/tcga/clinical/TCGA_data_clinical_patient_prompt.pt
+  geno_pt_path: data/processed/tcga/mutation/TCGA-BLCA.pt
+  tran_pt_path: data/processed/tcga/transcriptome/TCGA-BLCA.pt
+  align_batch_size: 64
+  prognosis_batch_size: 64
+models:
+  text_encoder_name: pretrained_models/medgemma-1.5-4b-it
+  path_dim: 768
+  geno_raw_dim: 17533
+  geno_dim: 512
+  tran_dim: 643
+MoE:
+  num_experts: 8
+  k: 2
+  drop: 0.1
+  hidden_size: 1024
+optimization:
+  align_epochs: 100
+  prognosis_epochs: 100
+  patience: 20
+  t2i_weight_decay: 0.05
+  t2i_final_weight_decay: 0.05
+  t2i_warmup: 0.1
+  ipe_scale: 1.0
+  align:
+    start_lr: 1.0e-05
+    lr: 0.0001
+    final_lr: 1.0e-05
+  prognosis:
+    start_lr: 1.0e-06
+    lr: 8.0e-05
+    final_lr: 1.0e-06
+logging:
+  write_tag: train_log
+tb:
+  log_dir: outputs/tensorboard
+num_folds: 5
