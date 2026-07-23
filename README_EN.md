@@ -1,6 +1,5 @@
 # M-JEPA
 
-[中文](README.md)
 
 M-JEPA is a multimodal survival-prediction research project. The repository defines a standard interface for the **processed patient-level inputs consumed by the model**. Raw tables may differ across hospitals, cohorts, and public datasets; users should convert their own data to the documented result formats.
 
