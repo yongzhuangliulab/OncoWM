@@ -1,6 +1,5 @@
 # TCGA Five-Fold Training Configurations
 
-[中文](README.md)
 
 This directory contains 84 configurations accepted by the current v5.3 five-fold training pipeline: 21 cohorts × four endpoints.
 
