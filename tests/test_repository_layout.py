@@ -17,6 +17,21 @@ def test_example_configs_contain_required_sections():
     assert inference["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
 
 
+def test_reproduced_all_dfi_config_uses_portable_layout():
+    path = ROOT / "configs/inference.ALL_DFI_fold_0.yaml"
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    assert config["run_name"] == "fold_0"
+    assert config["model_path"] == (
+        "pretrained_models/mjepa/ALL_DFI/fold_0/prognosis-best.pth.tar"
+    )
+    assert config["data"]["csv_path"] == (
+        "data/processed/tcga/survival/ALL_DFI_fold_0_val.csv"
+    )
+    assert config["models"]["geno_raw_dim"] == 19766
+    assert (ROOT / "REPRODUCIBILITY.md").is_file()
+
+
 def test_tcga_configs_are_complete_and_portable():
     configs = sorted((ROOT / "configs/tcga").glob("train_*.yaml"))
     assert len(configs) == 84
