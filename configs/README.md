@@ -1,6 +1,5 @@
 # Configuration Files
 
-[中文](README.md)
 
 - `train.example.yaml`: generic five-fold, two-stage training template.
 - `inference.example.yaml`: generic full-cohort checkpoint inference template.
