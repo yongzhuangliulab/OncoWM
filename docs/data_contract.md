@@ -1,6 +1,5 @@
 # Model Input Data Contract
 
-[中文](data_contract.md)
 
 This document defines the **processed results consumed by M-JEPA**. Raw CSV/TSV columns and file organization may differ between cohorts; data providers are responsible for local adaptation.
 
