@@ -1,7 +1,7 @@
 # TCGA Five-Fold Training Configurations
 
 
-This directory contains 84 configurations accepted by the current v5.3 five-fold training pipeline: 21 cohorts × four endpoints.
+This directory contains 84 configurations accepted by the  five-fold training pipeline: 21 cohorts × four endpoints.
 
 - `OS`: Overall Survival
 - `DSS`: Disease-Specific Survival
