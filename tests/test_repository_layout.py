@@ -62,8 +62,24 @@ def test_tcga_configs_are_complete_and_portable():
 def test_publishable_text_has_no_original_server_paths():
     forbidden = ("/home/Disk", "C:\\Users\\62519", "cuda:1")
     suffixes = {".py", ".md", ".yaml", ".yml", ".sh"}
+    package_paths = [
+        ROOT / "README.md",
+        ROOT / "USAGE.md",
+        ROOT / "main.py",
+        ROOT / "environment.yml",
+    ]
+    for directory in (
+        "configs",
+        "data",
+        "data_processing",
+        "docs",
+        "pretrained_models",
+        "scripts",
+        "src",
+    ):
+        package_paths.extend((ROOT / directory).rglob("*"))
 
-    for path in ROOT.rglob("*"):
+    for path in package_paths:
         if not path.is_file() or path.suffix.lower() not in suffixes or ".git" in path.parts:
             continue
         if path.resolve() == Path(__file__).resolve():
