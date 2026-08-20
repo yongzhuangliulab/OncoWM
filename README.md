@@ -1,7 +1,7 @@
-# M-JEPA
+# OncoWM
 
 
-M-JEPA is a multimodal survival-prediction research project. The repository defines a standard interface for the **processed patient-level inputs consumed by the model**. Raw tables may differ across hospitals, cohorts, and public datasets; users should convert their own data to the documented result formats.
+OncoWM is a multimodal survival-prediction research project. The repository defines a standard interface for the **processed patient-level inputs consumed by the model**. Raw tables may differ across hospitals, cohorts, and public datasets; users should convert their own data to the documented result formats.
 
 The repository contains the v5.3 training, inference, and survival-evaluation pipeline, together with example conversion scripts for clinical data, survival labels, and mutation features. Whole-slide image and transcriptome feature extraction are external preprocessing steps.
 
