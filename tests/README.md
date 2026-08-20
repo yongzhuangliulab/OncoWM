@@ -1,5 +1,9 @@
 # Tests
 
-[English](README_EN.md)
+The test suite covers core data-conversion rules, YAML structure, portable path conventions, and the absence of original absolute server paths in packaged files.
 
-当前测试覆盖数据转换核心规则、YAML 模板结构，以及公开文本中不得残留原服务器绝对路径。需要 GPU/模型权重的训练与推理集成测试应在服务器环境单独运行。
+```bash
+python -m pytest -q
+```
+
+GPU integration tests requiring model weights and patient-level features are intentionally not included in the repository test suite.

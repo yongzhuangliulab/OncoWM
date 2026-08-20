@@ -1,5 +1,6 @@
 import ast
 from pathlib import Path
+import re
 
 import yaml
 
@@ -8,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_model_api_has_no_unused_moe_parameters():
-    source = (ROOT / "src/models/mjepa.py").read_text(encoding="utf-8")
+    source = (ROOT / "src/models/OncoWM.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     onco_jepa = next(
         node for node in tree.body
@@ -25,37 +26,20 @@ def test_model_api_has_no_unused_moe_parameters():
     assert "self.out_proj" not in source
 
 
-def test_documentation_has_chinese_and_english_versions():
-    pairs = [
-        ("README.md", "README_EN.md"),
-        ("USAGE.md", "USAGE_EN.md"),
-        ("configs/README.md", "configs/README_EN.md"),
-        ("configs/tcga/README.md", "configs/tcga/README_EN.md"),
-        ("data/README.md", "data/README_EN.md"),
-        ("data_processing/README.md", "data_processing/README_EN.md"),
-        (
-            "data_processing/templates/README.md",
-            "data_processing/templates/README_EN.md",
-        ),
-        ("docs/data_contract.md", "docs/data_contract_EN.md"),
-        ("docs/pt_formats.md", "docs/pt_formats_EN.md"),
-        (
-            "docs/training_and_inference.md",
-            "docs/training_and_inference_EN.md",
-        ),
-        ("list/README.md", "list/README_EN.md"),
-        ("pretrained_models/README.md", "pretrained_models/README_EN.md"),
-        ("scripts/README.md", "scripts/README_EN.md"),
-        ("tests/README.md", "tests/README_EN.md"),
-    ]
+def test_documentation_uses_oncowm_name_and_valid_local_links():
+    legacy_names = re.compile(r"\bM?-?JEPA\b|Multimoda_JEPA", re.IGNORECASE)
+    markdown_files = sorted(ROOT.rglob("*.md"))
 
-    for chinese, english in pairs:
-        chinese_path = ROOT / chinese
-        english_path = ROOT / english
-        assert chinese_path.is_file(), chinese_path
-        assert english_path.is_file(), english_path
-        assert english_path.name in chinese_path.read_text(encoding="utf-8")
-        assert chinese_path.name in english_path.read_text(encoding="utf-8")
+    for path in markdown_files:
+        text = path.read_text(encoding="utf-8")
+        assert not legacy_names.search(text), path
+
+        for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", text):
+            if target.startswith(("http://", "https://", "#")):
+                continue
+            local_target = target.split("#", 1)[0]
+            if local_target:
+                assert (path.parent / local_target).is_file(), (path, target)
 
 
 def test_example_configs_contain_required_sections():
@@ -65,7 +49,7 @@ def test_example_configs_contain_required_sections():
     assert {"data", "models", "optimization", "meta"}.issubset(train)
     assert train["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
     assert {"task_mode", "model_path", "output_path", "data", "models"}.issubset(inference)
-    assert inference["model_path"].startswith("pretrained_models/mjepa/")
+    assert inference["model_path"].startswith("pretrained_models/oncowm/")
     assert inference["models"]["text_encoder_name"] == "pretrained_models/medgemma-1.5-4b-it"
     assert "MoE" not in train
     assert "MoE" not in inference
@@ -82,7 +66,7 @@ def test_all_dfi_inference_example_uses_portable_layout():
 
     assert config["run_name"] == "full_cohort"
     assert config["model_path"] == (
-        "pretrained_models/mjepa/ALL_DFI/full_cohort/prognosis_full_final.pth.tar"
+        "pretrained_models/oncowm/ALL_DFI/full_cohort/prognosis_full_final.pth.tar"
     )
     assert config["data"]["csv_path"] == (
         "data/processed/tcga/survival/ALL_DFI_dataset.csv"

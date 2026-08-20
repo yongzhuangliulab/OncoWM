@@ -1,14 +1,14 @@
 # Custom Data Conversion Scripts
 
 
-These scripts convert cohort-specific raw data into standard M-JEPA inputs. They form a **data adaptation layer** and are separate from the model-side dataset in `src/datasets/`.
+These scripts convert cohort-specific raw data into standard OncoWM inputs. They form a **data adaptation layer** and are separate from the model-side dataset in `src/datasets/`.
 
 ## Principles
 
 - Raw table formats do not need to match the QU examples.
 - Use CLI column options when only column names differ.
 - Copy and adapt a script when the source layout differs substantially.
-- Every output must satisfy the [Model Input Data Contract](../docs/data_contract_EN.md).
+- Every output must satisfy the [Model Input Data Contract](../docs/data_contract.md).
 
 This directory currently produces `survival.csv`, `clinical.pt`, and `mutation.pt`. Training also requires precomputed pathology and transcriptome features.
 

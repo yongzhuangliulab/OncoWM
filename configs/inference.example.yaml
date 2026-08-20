@@ -1,6 +1,6 @@
 task_mode: prognosis
 run_name: KIRP_OS_full_cohort
-model_path: pretrained_models/mjepa/KIRP_OS/full_cohort/prognosis_full_final.pth.tar
+model_path: pretrained_models/oncowm/KIRP_OS/full_cohort/prognosis_full_final.pth.tar
 output_path: outputs/inference
 device: cuda:0
 use_bfloat16: true

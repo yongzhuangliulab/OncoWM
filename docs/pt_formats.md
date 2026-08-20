@@ -1,8 +1,6 @@
 # PyTorch `.pt` Result Formats
 
-[中文](pt_formats.md)
-
-M-JEPA PT inputs are patient-level Python dictionaries saved with `torch.save`, not anonymous standalone tensors. Load only files from trusted sources.
+OncoWM PT inputs are patient-level Python dictionaries saved with `torch.save`, not anonymous standalone tensors. Load only files from trusted sources.
 
 ## Clinical results
 
@@ -49,4 +47,4 @@ python data_processing/inspect_pt.py data/processed/clinical.pt --max-items 3
 python data_processing/inspect_pt.py data/processed/mutation.pt --max-items 3
 ```
 
-Inspect the top-level type, sample keys, record fields, tensor shape, dtype, NaN, and Inf. See the full [Model Input Data Contract](data_contract_EN.md).
+Inspect the top-level type, sample keys, record fields, tensor shape, dtype, NaN, and Inf. See the full [Model Input Data Contract](data_contract.md).

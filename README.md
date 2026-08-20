@@ -5,14 +5,14 @@ OncoWM is a multimodal survival-prediction research project. The repository defi
 
 The repository contains the v5.3 training, inference, and survival-evaluation pipeline, together with example conversion scripts for clinical data, survival labels, and mutation features. Whole-slide image and transcriptome feature extraction are external preprocessing steps.
 
-For installation and end-to-end commands, start with the [Usage Guide](USAGE_EN.md).
+For installation and end-to-end commands, start with the [Usage Guide](USAGE.md).
 
 ## Repository layout
 
 ```text
-mjepa/
-├── README.md / README_EN.md
-├── USAGE.md / USAGE_EN.md
+OncoWM/
+├── README.md
+├── USAGE.md
 ├── environment.yml
 ├── requirements.txt
 ├── main.py
@@ -21,7 +21,7 @@ mjepa/
 │   ├── train.py
 │   ├── inference.py
 │   ├── evaluate.py
-│   ├── models/mjepa.py
+│   ├── models/OncoWM.py
 │   └── datasets/medical.py
 ├── scripts/
 ├── data_processing/
@@ -58,11 +58,11 @@ data/processed/
 └── transcriptome.pt
 ```
 
-The TCGA configurations use modality-specific subdirectories under `data/processed/tcga/`. See [TCGA configuration documentation](configs/tcga/README_EN.md).
+The TCGA configurations use modality-specific subdirectories under `data/processed/tcga/`. See [TCGA configuration documentation](configs/tcga/README.md).
 
 ## Downloaded model weights
 
-Place downloaded third-party models and published M-JEPA checkpoints under:
+Place downloaded third-party models and published OncoWM checkpoints under:
 
 ```text
 pretrained_models/
@@ -70,7 +70,7 @@ pretrained_models/
 ├── conch-v1.5/
 ├── titan/
 ├── bulkformer/
-└── mjepa/<CANCER>_<ENDPOINT>/full_cohort/prognosis_full_final.pth.tar
+└── oncowm/<CANCER>_<ENDPOINT>/full_cohort/prognosis_full_final.pth.tar
 ```
 
 The training code does not read SVS files directly. A whole-slide image must first be processed into patch features and then a patient-level pathology embedding, for example:
@@ -79,13 +79,13 @@ The training code does not read SVS files directly. A whole-slide image must fir
 SVS → CONCH patch features → TITAN embedding → pathology.pt
 ```
 
-See [Downloaded Model Layout](pretrained_models/README_EN.md).
+See [Downloaded Model Layout](pretrained_models/README.md).
 
 ## Installation
 
 ```bash
 conda env create -f environment.yml
-conda activate mjepa
+conda activate oncowm
 ```
 
 Alternatively, in an environment with a compatible CUDA stack:
@@ -124,15 +124,15 @@ python -m src.evaluate \
   --yaml configs/inference.ALL_DFI_full_cohort.yaml
 ```
 
-For details, see the [Usage Guide](USAGE_EN.md) and [Training, Inference, and Survival Evaluation](docs/training_and_inference_EN.md).
+For details, see the [Usage Guide](USAGE.md) and [Training, Inference, and Survival Evaluation](docs/training_and_inference.md).
 
 ## Adapting your own data
 
-The scripts in `data_processing/` are adaptation examples rather than mandatory raw-data formats. Users may map different column names through CLI options or modify the scripts for their own cohort, but the outputs must satisfy [the model input contract](docs/data_contract_EN.md).
+The scripts in `data_processing/` are adaptation examples rather than mandatory raw-data formats. Users may map different column names through CLI options or modify the scripts for their own cohort, but the outputs must satisfy [the model input contract](docs/data_contract.md).
 
 ## Data safety
 
-Do not commit patient data, identifier mapping tables, SVS files, generated `.pt/.h5` features, third-party model weights, M-JEPA checkpoints, tokens, or server logs. These paths are ignored by Git, but always review:
+Do not commit patient data, identifier mapping tables, SVS files, generated `.pt/.h5` features, third-party model weights, OncoWM checkpoints, tokens, or server logs. These paths are ignored by Git, but always review:
 
 ```bash
 git status --short

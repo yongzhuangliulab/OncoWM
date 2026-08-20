@@ -1,1 +1,1 @@
-"""Cohort-specific adapters that produce M-JEPA's standard data contract."""
+"""Cohort-specific adapters that produce OncoWM's standard data contract."""

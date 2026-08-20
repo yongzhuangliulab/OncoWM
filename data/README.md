@@ -2,7 +2,7 @@
 
 
 - `raw/`: user-provided source data; formats may differ by cohort.
-- `processed/`: model inputs that satisfy `docs/data_contract_EN.md`.
+- `processed/`: model inputs that satisfy `docs/data_contract.md`.
 
 TCGA configurations use:
 

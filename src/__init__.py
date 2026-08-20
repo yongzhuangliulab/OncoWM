@@ -1,1 +1,1 @@
-"""M-JEPA training, inference, and evaluation package."""
+"""OncoWM training, inference, and evaluation package."""
