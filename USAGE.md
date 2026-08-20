@@ -1,23 +1,23 @@
-# M-JEPA Usage Guide
+# OncoWM Usage Guide
 
 
-This guide explains how to install M-JEPA, prepare processed inputs and model weights, train a model, run inference with a published full-cohort checkpoint, and evaluate survival predictions.
+This guide explains how to install OncoWM, prepare processed inputs and model weights, train a model, run inference with a published full-cohort checkpoint, and evaluate survival predictions.
 
 ## 1. Installation
 
 ```bash
-git clone https://github.com/yongzhuangliulab/Multimoda_JEPA.git
-cd Multimoda_JEPA
+git clone https://github.com/yongzhuangliulab/OncoWM.git
+cd OncoWM
 
 conda env create -f environment.yml
-conda activate mjepa
+conda activate oncowm
 ```
 
 Update an existing environment:
 
 ```bash
 git pull origin main
-conda env update -n mjepa -f environment.yml --prune
+conda env update -n oncowm -f environment.yml --prune
 ```
 
 Check Python, PyTorch, and CUDA:
@@ -37,7 +37,7 @@ The current dependency set requires PyTorch 2.6 or newer.
 
 ## 2. Prepare processed data
 
-M-JEPA does not directly consume hospital source tables, SVS files, or raw expression matrices. Convert them to patient-level model inputs first.
+OncoWM does not directly consume hospital source tables, SVS files, or raw expression matrices. Convert them to patient-level model inputs first.
 
 For a single cohort:
 
@@ -73,9 +73,9 @@ All inputs must use identical `sample_id` rules. Training keeps the intersection
 
 Read:
 
-- [Model Input Data Contract](docs/data_contract_EN.md)
-- [PyTorch PT Formats](docs/pt_formats_EN.md)
-- [Data Conversion Scripts](data_processing/README_EN.md)
+- [Model Input Data Contract](docs/data_contract.md)
+- [PyTorch PT Formats](docs/pt_formats.md)
+- [Data Conversion Scripts](data_processing/README.md)
 
 Inspect trusted PT files:
 
@@ -92,7 +92,7 @@ pretrained_models/
 ├── conch-v1.5/
 ├── titan/
 ├── bulkformer/
-└── mjepa/
+└── oncowm/
     └── <CANCER>_<ENDPOINT>/
         └── full_cohort/
             └── prognosis_full_final.pth.tar
@@ -101,11 +101,11 @@ pretrained_models/
 - MedGemma is the clinical text encoder used during training and inference.
 - CONCH and TITAN are used by an external preprocessing pipeline to produce pathology embeddings.
 - BulkFormer is used by an external preprocessing pipeline to produce transcriptome embeddings.
-- Published M-JEPA checkpoints belong under `pretrained_models/mjepa/`.
+- Published OncoWM checkpoints belong under `pretrained_models/oncowm/`.
 
-Keep the complete original directory structure of each third-party model, including configuration, tokenizer, and weight files. See [Downloaded Model Layout](pretrained_models/README_EN.md).
+Keep the complete original directory structure of each third-party model, including configuration, tokenizer, and weight files. See [Downloaded Model Layout](pretrained_models/README.md).
 
-Once `pathology.pt` has been produced, TITAN is no longer loaded by M-JEPA training or inference.
+Once `pathology.pt` has been produced, TITAN is no longer loaded by OncoWM training or inference.
 
 ## 4. Configuration files
 
@@ -200,7 +200,7 @@ outputs/inference/<experiment>/<run_name>/
 
 Inference permits a disabled modality path to be YAML `null`. The loader still intersects the sample IDs of all enabled modalities.
 
-Published M-JEPA checkpoints omit the frozen MedGemma backbone. Missing keys that belong only to the base `text_model` may therefore be reported while the backbone is loaded from `models.text_encoder_name`.
+Published OncoWM checkpoints omit the frozen MedGemma backbone. Missing keys that belong only to the base `text_model` may therefore be reported while the backbone is loaded from `models.text_encoder_name`.
 
 ## 7. Survival evaluation
 
@@ -244,7 +244,7 @@ Run alignment first or use `--task both`. Each prognosis fold requires the corre
 
 ## 9. Data safety
 
-Do not commit patient data, identifier maps, `.pt/.h5` features, SVS files, third-party weights, M-JEPA checkpoints, access tokens, or server logs. Review:
+Do not commit patient data, identifier maps, `.pt/.h5` features, SVS files, third-party weights, OncoWM checkpoints, access tokens, or server logs. Review:
 
 ```bash
 git status --short

@@ -97,7 +97,7 @@ def read_table(path: str, sep: str | None = None) -> pd.DataFrame:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Convert a cohort mut_* wide table into the standard M-JEPA mutation .pt dictionary."
+        description="Convert a cohort mut_* wide table into the standard OncoWM mutation .pt dictionary."
     )
     parser.add_argument("--input", required=True, help="Path to the cohort molecular CSV/TSV")
     parser.add_argument("--gene-list", default=None, help="Cancer-specific gene list file. Overrides --cancer-type/--list-dir")

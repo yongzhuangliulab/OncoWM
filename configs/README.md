@@ -8,4 +8,4 @@
 
 Copy a template and edit it for your cohort and local paths. Dimensions under `models` must match the tensors and checkpoint architecture, especially `geno_raw_dim`, `path_dim`, `tran_dim`, and `hidden_size`. `dropout_rate` is used only when training a model.
 
-See the [Usage Guide](../USAGE_EN.md) and [TCGA Configuration Guide](tcga/README_EN.md).
+See the [Usage Guide](../USAGE.md) and [TCGA Configuration Guide](tcga/README.md).

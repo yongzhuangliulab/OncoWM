@@ -9,7 +9,7 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-from src.models.mjepa import init_m3jepa
+from src.models.OncoWM import init_m3jepa
 from src.datasets.medical import DatasetManager
 from src.training import init_opt
 from src.utils.logging import CSVLogger, gpu_timer, AverageMeter

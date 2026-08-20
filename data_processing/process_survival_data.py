@@ -118,7 +118,7 @@ def read_table(path: str, sep: str | None = None) -> pd.DataFrame:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Build the standard M-JEPA survival label table from cohort data.")
+    parser = argparse.ArgumentParser(description="Build the standard OncoWM survival label table from cohort data.")
     parser.add_argument("--clinical", required=True, help="Path to the cohort follow-up CSV/TSV")
     parser.add_argument("--pathology", required=True, help="Path to the cohort pathology/group CSV/TSV")
     parser.add_argument("--output", required=True, help="Output CSV path")

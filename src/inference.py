@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
-from src.models.mjepa import init_m3jepa
+from src.models.OncoWM import init_m3jepa
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -256,7 +256,7 @@ def main(args):
         logger.info(f"Cluster embeddings saved to: {out_dir}/cluster_embeddings.npz")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run M-JEPA inference from a YAML config")
+    parser = argparse.ArgumentParser(description="Run OncoWM inference from a YAML config")
     parser.add_argument('--fname', type=str, required=True, help="YAML 配置文件路径")
     parser.add_argument('--force', action='store_true', help="Overwrite/recreate outputs that already exist")
     args = parser.parse_args()

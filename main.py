@@ -1,4 +1,4 @@
-"""Two-stage M-JEPA training entry point."""
+"""Two-stage OncoWM training entry point."""
 
 import argparse
 import logging
@@ -45,7 +45,7 @@ def run_task(config_path, task, run_name, status_dir, force=False):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="M-JEPA alignment and prognosis training")
+    parser = argparse.ArgumentParser(description="OncoWM alignment and prognosis training")
     parser.add_argument("--fname", type=Path, required=True, help="Training YAML path")
     parser.add_argument(
         "--task",

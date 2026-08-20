@@ -1,7 +1,7 @@
 # Model Input Data Contract
 
 
-This document defines the **processed results consumed by M-JEPA**. Raw CSV/TSV columns and file organization may differ between cohorts; data providers are responsible for local adaptation.
+This document defines the **processed results consumed by OncoWM**. Raw CSV/TSV columns and file organization may differ between cohorts; data providers are responsible for local adaptation.
 
 ## 1. General conventions
 
@@ -110,4 +110,4 @@ P002,LUSC,13.0,1
 6. No NaN or Inf in floating-point tensors.
 7. Pathology and transcriptome dimensions matching YAML.
 
-See [PyTorch PT Formats](pt_formats_EN.md).
+See [PyTorch PT Formats](pt_formats.md).
