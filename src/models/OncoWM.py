@@ -48,7 +48,7 @@ def pairwise_ranking_loss(risk: torch.Tensor, time: torch.Tensor, event: torch.T
     loss_matrix = F.relu(margin - risk_diff)
     return loss_matrix[valid_pair_mask].mean()
 
-class LeJEPASIGReg(nn.Module):
+class OncoWMSIGReg(nn.Module):
     def __init__(self, num_slices=1024, num_knots=17):
         super().__init__()
         self.num_slices = num_slices
@@ -224,7 +224,7 @@ class DeepSurvHead(nn.Module):
         
         return final_risk, ortho_loss
 
-class OncoJEPA(nn.Module):
+class OncoWM(nn.Module):
     def __init__(self, text_encoder_name: str, path_dim: int, geno_raw_dim: int, geno_dim: int, tran_dim: int, 
                  hidden_size: int, dropout_rate: float):
         super().__init__()
@@ -271,7 +271,7 @@ class OncoJEPA(nn.Module):
         self.scale_tran = nn.Parameter(torch.ones(1))
         self.norm_joint = nn.LayerNorm(hidden_size)
 
-        self.le_sigreg = LeJEPASIGReg(num_slices=1024)
+        self.oncowm_sigreg = OncoWMSIGReg(num_slices=1024)
         
         self.head_joint = DeepSurvHead(in_features=hidden_size, hidden_dims=[128, 32], dropout_rate=0.35, temperature=2.0)
         
@@ -437,7 +437,7 @@ class OncoJEPA(nn.Module):
                 student_joint_embedding = self.norm_joint(s_fused[:, 0, :])
 
                 loss_pred = F.mse_loss(student_joint_embedding, target_joint_embedding)
-                loss_sigreg = self.le_sigreg(student_joint_embedding)
+                loss_sigreg = self.oncowm_sigreg(student_joint_embedding)
 
                 lambd = 0.05
                 total_loss = (1.0 - lambd) * loss_pred + lambd * loss_sigreg
@@ -497,5 +497,5 @@ class OncoJEPA(nn.Module):
         else:
             raise ValueError(f"不支持的 Task 模式: {task}")
 
-def init_m3jepa(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate):
-    return OncoJEPA(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate)
+def init_oncowm(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate):
+    return OncoWM(text_encoder_name, path_dim, geno_raw_dim, geno_dim, tran_dim, hidden_size, dropout_rate)
