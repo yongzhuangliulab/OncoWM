@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
-from src.models.OncoWM import init_m3jepa
+from src.models.OncoWM import init_oncowm
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ def main(args):
 
     models_cfg = params['models']
 
-    mm_jepa = init_m3jepa(
+    oncowm = init_oncowm(
         text_encoder_name=models_cfg['text_encoder_name'],
         path_dim=models_cfg.get('path_dim', 768),
         geno_raw_dim=models_cfg.get('geno_raw_dim', 40543),
@@ -184,20 +184,25 @@ def main(args):
     logger.info(f"Loading pretrained checkpoint: {ckpt_path}")
     checkpoint = torch.load(ckpt_path, map_location='cpu', weights_only=False)
 
-    raw_state_dict = checkpoint.get('mm_jepa', checkpoint.get('state_dict', checkpoint))
-    state_dict = {k.replace('module.', ''): v for k, v in raw_state_dict.items()}
+    raw_state_dict = checkpoint.get(
+        'oncowm', checkpoint.get('mm_jepa', checkpoint.get('state_dict', checkpoint))
+    )
+    state_dict = {
+        k.replace('module.', '').replace('le_sigreg.', 'oncowm_sigreg.'): v
+        for k, v in raw_state_dict.items()
+    }
     state_dict.pop('head_joint.out_proj.weight', None)
 
-    incompatible = mm_jepa.load_state_dict(state_dict, strict=False)
+    incompatible = oncowm.load_state_dict(state_dict, strict=False)
     if incompatible.missing_keys:
         logger.warning("Checkpoint missing keys: %s", incompatible.missing_keys)
     if incompatible.unexpected_keys:
         logger.warning("Checkpoint unexpected keys: %s", incompatible.unexpected_keys)
 
     if use_bfloat16:
-        mm_jepa = mm_jepa.bfloat16()
-    mm_jepa = mm_jepa.to(device)
-    mm_jepa.eval()
+        oncowm = oncowm.bfloat16()
+    oncowm = oncowm.to(device)
+    oncowm.eval()
 
     results_dict = {'sample_id': [], 'risk_scores': [], 'joint_embeddings': []}
     
@@ -205,7 +210,7 @@ def main(args):
         joint_emb = output.cpu().float().numpy()
         results_dict['joint_embeddings'].append(joint_emb)
 
-    hook_handle = mm_jepa.norm_joint.register_forward_hook(hook_fn)
+    hook_handle = oncowm.norm_joint.register_forward_hook(hook_fn)
 
     logger.info(f"Starting inference extraction, mode: {task_mode.upper()}")
     
@@ -222,7 +227,7 @@ def main(args):
             with torch.amp.autocast(device.type, dtype=torch.bfloat16, enabled=use_bfloat16):
                 
                 forward_task = 'cluster' if task_mode == 'align' else 'prognosis'
-                out = mm_jepa(
+                out = oncowm(
                     text_input_ids=clin_ids, text_attention_mask=clin_mask, text_token_type_ids=clin_type_ids,
                     path_features=path_feat, geno_raw=geno_raw, tran_features=tran_feat,
                     task=forward_task, drop_prob=0.0

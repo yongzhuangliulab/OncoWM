@@ -8,15 +8,15 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_model_api_has_no_unused_moe_parameters():
+def test_model_api_uses_oncowm_names_and_has_no_unused_moe_parameters():
     source = (ROOT / "src/models/OncoWM.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
-    onco_jepa = next(
+    oncowm = next(
         node for node in tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "OncoJEPA"
+        if isinstance(node, ast.ClassDef) and node.name == "OncoWM"
     )
     constructor = next(
-        node for node in onco_jepa.body
+        node for node in oncowm.body
         if isinstance(node, ast.FunctionDef) and node.name == "__init__"
     )
     parameter_names = {argument.arg for argument in constructor.args.args}
@@ -24,6 +24,8 @@ def test_model_api_has_no_unused_moe_parameters():
     assert "num_experts" not in parameter_names
     assert "k_expert" not in parameter_names
     assert "self.out_proj" not in source
+    assert "OncoJEPA" not in source
+    assert "init_m3jepa" not in source
 
 
 def test_documentation_uses_oncowm_name_and_valid_local_links():

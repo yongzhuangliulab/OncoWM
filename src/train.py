@@ -9,7 +9,7 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-from src.models.OncoWM import init_m3jepa
+from src.models.OncoWM import init_oncowm
 from src.datasets.medical import DatasetManager
 from src.training import init_opt
 from src.utils.logging import CSVLogger, gpu_timer, AverageMeter
@@ -119,7 +119,7 @@ def main(args):
 
         logger.info(f"Starting training for fold {fold}/{num_folds-1}")
         
-        mm_jepa = init_m3jepa(
+        oncowm = init_oncowm(
             text_encoder_name=text_encoder_name, path_dim=path_dim, 
             geno_raw_dim=geno_raw_dim, geno_dim=geno_dim, 
             tran_dim=tran_dim, hidden_size=hidden_size, dropout_rate=drop_rate
@@ -134,9 +134,17 @@ def main(args):
             resume_checkpoint = os.path.join(fold_dir, 'align-best.pth.tar')
             if os.path.exists(resume_checkpoint):
                 checkpoint = torch.load(resume_checkpoint, map_location='cpu', weights_only=False)
-                state_dict = {k.replace('module.', ''): v for k, v in (checkpoint['mm_jepa'] if 'mm_jepa' in checkpoint else checkpoint).items()}
+                checkpoint_state = checkpoint.get(
+                    'oncowm', checkpoint.get('mm_jepa', checkpoint)
+                )
+                state_dict = {
+                    k.replace('module.', '').replace(
+                        'le_sigreg.', 'oncowm_sigreg.'
+                    ): v
+                    for k, v in checkpoint_state.items()
+                }
                 state_dict = {k: v for k, v in state_dict.items() if not k.startswith("head_")}
-                mm_jepa.load_state_dict(state_dict, strict=False)
+                oncowm.load_state_dict(state_dict, strict=False)
                 logger.info(f"Fold {fold} loaded alignment weights and excluded prognosis-head weights.")
             else:
                 if args.get('allow_prognosis_from_scratch', False):
@@ -147,17 +155,17 @@ def main(args):
                         "Run align first, or explicitly set allow_prognosis_from_scratch: true."
                     )
             
-            for name, param in mm_jepa.named_parameters():
+            for name, param in oncowm.named_parameters():
                 if name.startswith("head_joint"):  
                     param.requires_grad = True
                 else:                
                     param.requires_grad = False
 
-        mm_jepa = mm_jepa.to(device)
+        oncowm = oncowm.to(device)
         
         if use_bfloat16:
-            mm_jepa = mm_jepa.bfloat16()
-            for param in mm_jepa.parameters():
+            oncowm = oncowm.bfloat16()
+            for param in oncowm.parameters():
                 if param.requires_grad:
                     param.data = param.data.to(torch.float32)
 
@@ -165,7 +173,7 @@ def main(args):
             decay_params = []
             no_decay_params = []
             
-            for name, param in mm_jepa.named_parameters():
+            for name, param in oncowm.named_parameters():
                 if param.requires_grad:
                     if param.ndim <= 1 or name.endswith(".bias") or "LayerNorm" in name:
                         no_decay_params.append(param)
@@ -177,7 +185,7 @@ def main(args):
                 {'params': no_decay_params, 'lr_scale': 1.0, 'weight_decay': 0.0}
             ]
         else:
-            params_to_optimize = list(filter(lambda p: p.requires_grad, mm_jepa.parameters()))
+            params_to_optimize = list(filter(lambda p: p.requires_grad, oncowm.parameters()))
 
         _, _, train_loader, val_loader, train_sampler, _ = data_manager.resplit_data(fold_idx=fold)
         
@@ -212,10 +220,10 @@ def main(args):
 
         for epoch in range(num_epochs):
             if task_mode == 'prognosis':
-                mm_jepa.eval() 
-                mm_jepa.head_joint.train()
+                oncowm.eval()
+                oncowm.head_joint.train()
             else:
-                mm_jepa.train()
+                oncowm.train()
                 
             if hasattr(train_sampler, 'set_epoch') and task_mode != 'prognosis': 
                 train_sampler.set_epoch(epoch)
@@ -249,7 +257,7 @@ def main(args):
                 def train_step():
                     optimizer.zero_grad()
                     with torch.amp.autocast('cuda', dtype=torch.bfloat16, enabled=use_bfloat16):
-                        out = mm_jepa(
+                        out = oncowm(
                             text_input_ids=clinical_ids, text_attention_mask=clinical_mask, text_token_type_ids=clinical_type_ids,
                             path_features=path_features, geno_raw=geno_raw, tran_features=tran_features,
                             task=task_mode, surv_time=surv_time_input, surv_event=surv_event, drop_prob=base_drop_prob
@@ -257,7 +265,7 @@ def main(args):
                         loss = out if task_mode == 'align' else out[0] 
 
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(mm_jepa.parameters(), max_norm=1.0)
+                    torch.nn.utils.clip_grad_norm_(oncowm.parameters(), max_norm=1.0)
                     optimizer.step()
                     
                     return loss.item(), scheduler.step(), wd_scheduler.step(), task_mode
@@ -269,7 +277,7 @@ def main(args):
                 if itr % 10 == 0:
                     logger.info(f'Fold {fold}, epoch {epoch + 1}, iteration {itr}/{ipe}, loss: {loss:.4f}, LR: {new_lr:.8f}, drop: {base_drop_prob:.3f}')
 
-            mm_jepa.eval()
+            oncowm.eval()
             val_loss_meter = AverageMeter()
             all_risk_scores, all_surv_times, all_surv_events = [], [], []
 
@@ -300,7 +308,7 @@ def main(args):
                     v_event = val_sample['survival_event'].to(device)
 
                     with torch.amp.autocast('cuda', dtype=torch.bfloat16, enabled=use_bfloat16):
-                        out = mm_jepa(
+                        out = oncowm(
                             text_input_ids=v_clin_ids, text_attention_mask=v_clin_mask, text_token_type_ids=v_clin_type_ids,
                             path_features=v_path, geno_raw=v_geno, tran_features=v_tran,
                             task=task_mode, surv_time=v_time_input, surv_event=v_event, 
@@ -341,7 +349,7 @@ def main(args):
                 best_epoch_for_fold = epoch + 1
                 
                 clean_state_dict = {}
-                for k, v in mm_jepa.state_dict().items():
+                for k, v in oncowm.state_dict().items():
                     if k.startswith('text_model.'):
                         if 'lora' in k or 'modules_to_save' in k:
                             clean_state_dict[k] = v
@@ -349,7 +357,7 @@ def main(args):
                         clean_state_dict[k] = v
 
                 checkpoint = {
-                    'mm_jepa': clean_state_dict,
+                    'oncowm': clean_state_dict,
                     'epoch': epoch + 1,
                     'best_metric': best_metric,
                     'metric_name': metric_name
